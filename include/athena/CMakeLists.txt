@@ -1,5 +1,8 @@
 set(ATHENA_INCLUDE_TOP_LIST
+    "${ATHENA_INCLUDE_ROOT}/athena/Athena.hpp"
     )
+configure_file("${ATHENA_INCLUDE_ROOT}/athena/Athena.hpp.in" 
+    ${ATHENA_INCLUDE_TOP_LIST})
 
 add_subdirectory("${ATHENA_INCLUDE_ROOT}/athena/core")
 add_subdirectory("${ATHENA_INCLUDE_ROOT}/athena/fields")

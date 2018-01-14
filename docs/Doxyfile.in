@@ -5,9 +5,9 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = Athena
-PROJECT_NUMBER         = 0.0
+PROJECT_NUMBER         = @ATHENA_VERSION@
 PROJECT_BRIEF          = "A polygonizer for implicit surfaces."
-OUTPUT_DIRECTORY       = @MR_DOC_ROOT@
+OUTPUT_DIRECTORY       = @ATHENA_DOC_ROOT@
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = NO
 OUTPUT_LANGUAGE        = English

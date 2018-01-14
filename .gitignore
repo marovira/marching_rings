@@ -1,0 +1,6 @@
+# Build folders.
+build/
+
+# Generated files
+include/athena/Athena.hpp
+doc/html
