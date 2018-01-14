@@ -16,6 +16,15 @@ endif()
 option(ATHENA_BUILD_DOCS "Build marching rings documentation" ON)
 option(ATHENA_PARALLEL "Enable parallelization using TBB" ON)
 
+# Set the version data.
+set(ATHENA_VERSION_MAJOR "0")
+set(ATHENA_VERSION_MINOR "0")
+set(ATHENA_VERSION_PATCH "0")
+set(ATHENA_VERSION_EXTRA "")
+set(ATHENA_VERSION "${ATHENA_VERSION_MAJOR}.${ATHENA_VERSION_MINOR}")
+set(ATHENA_VERSION_FULL 
+    "${ATHENA_VERSION}.${ATHENA_VERSION_PATCH}${ATHENA_VERSION_EXTRA}")
+
 #=============================================================================#
 # Directory Variables.
 #=============================================================================#
