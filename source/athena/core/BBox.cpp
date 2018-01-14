@@ -1,14 +1,14 @@
-#include "mr/core/BBox.hpp"
-#include "mr/core/Constants.hpp"
-#include "mr/core/Float.hpp"
+#include "athena/core/BBox.hpp"
+#include "athena/core/Constants.hpp"
+#include "athena/core/Float.hpp"
 
-namespace mr
+namespace athena
 {
     namespace core
     {
         BBox::BBox() :
-            pMin(mr::core::infinity()),
-            pMax(mr::core::negInfinity())
+            pMin(infinity()),
+            pMax(negInfinity())
         { }
 
         BBox::BBox(core::Point const& p) :

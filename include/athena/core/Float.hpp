@@ -1,18 +1,18 @@
-#ifndef MR_INCLUDE_MR_CORE_FLOAT_HPP
-#define MR_INCLUDE_MR_CORE_FLOAT_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_CORE_FLOAT_HPP
+#define ATHENA_INCLUDE_ATHENA_CORE_FLOAT_HPP
 
 #pragma once
 
 #include "Constants.hpp"
 #include "Platform.hpp"
 
-#if defined(MR_PLATFORM_LINUX)
+#if defined(ATHENA_PLATFORM_LINUX)
 #include <cmath>
 #include <cstdlib>
 #include <cstdint>
 #endif
 
-namespace mr
+namespace athena
 {
     namespace core
     {

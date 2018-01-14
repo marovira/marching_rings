@@ -1,6 +1,6 @@
-#include "mr/core/Log.hpp"
+#include "athena/core/Log.hpp"
 
-#if defined(MR_PLATFORM_WINDOWS)
+#if defined(ATHENA_PLATFORM_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
@@ -13,7 +13,7 @@
 #include <vector>
 #include <cstdarg>
 
-namespace mr
+namespace athena
 {
     namespace core
     {
@@ -36,7 +36,7 @@ namespace mr
                 char buf[maxLogLength];
                 memcpy(buf, message.c_str(), message.size() + 1);
 
-#if defined(MR_PLATFORM_WINDOWS)
+#if defined(ATHENA_PLATFORM_WINDOWS)
                 strncat_s(buf, "\n", 3);
 
                 WCHAR wszBuf[maxLogLength] = { 0 };

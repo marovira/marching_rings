@@ -1,11 +1,11 @@
-#ifndef MR_INCLUDE_MR_CORE_BBOX_HPP
-#define MR_INCLUDE_MR_CORE_BBOX_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_CORE_BBOX_HPP
+#define ATHENA_INCLUDE_ATHENA_CORE_BBOX_HPP
 
 #pragma once
 
 #include "Math.hpp"
 
-namespace mr
+namespace athena
 {
     namespace core
     {

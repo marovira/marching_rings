@@ -1,5 +1,5 @@
-#ifndef MR_INCLUDE_MR_CORE_LOG_HPP
-#define MR_INCLUDE_MR_CORE_LOG_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_CORE_LOG_HPP
+#define ATHENA_INCLUDE_ATHENA_CORE_LOG_HPP
 
 #pragma once
 
@@ -9,7 +9,7 @@
 #include <string>
 
 
-namespace mr
+namespace athena
 {
     namespace core
     {
@@ -32,41 +32,45 @@ namespace mr
 }
 
 #define LOG(level, message) \
-    mr::core::Log::log(level, message)
+    athena::core::Log::log(level, message)
 
 #define LOG_V(level, format, ...) \
-    mr::core::Log::log(level, format, __VA_ARGS__)
+    athena::core::Log::log(level, format, __VA_ARGS__)
 
-#if defined(MR_DEBUG)
+#if defined(ATHENA_DEBUG)
 #define DEBUG_LOG(message) \
-    LOG(mr::core::Log::SeverityLevel::Debug, message)
+    LOG(athena::core::Log::SeverityLevel::Debug, message)
 
 #define DEBUG_LOG_V(format, ...) \
-    LOG_V(mr::core::Log::SeverityLevel::Debug, format, __VA_ARGS__)
+    LOG_V(athena::core::Log::SeverityLevel::Debug, format, __VA_ARGS__)
+#else
+#define DEBUG_LOG(message)
+
+#define DEBUG_LOG_V(format, ...)
 #endif
 
 #define INFO_LOG(message) \
-    LOG(mr::core::Log::SeverityLevel::Info, message)
+    LOG(athena::core::Log::SeverityLevel::Info, message)
 
 #define INFO_LOG_V(format, ...) \
-    LOG_V(mr::core::Log::SeverityLevel::Info, format, __VA_ARGS__)
+    LOG_V(athena::core::Log::SeverityLevel::Info, format, __VA_ARGS__)
 
 #define WARN_LOG(message) \
-    LOG(mr::core::Log::SeverityLevel::Warning, message)
+    LOG(athena::core::Log::SeverityLevel::Warning, message)
 
 #define WARN_LOG_V(format, ...) \
-    LOG_V(mr::core::Log::SeverityLevel::Warning, format, __VA_ARGS__)
+    LOG_V(athena::core::Log::SeverityLevel::Warning, format, __VA_ARGS__)
 
 #define ERROR_LOG(message) \
-    LOG(mr::core::Log::SeverityLevel::Error, message)
+    LOG(athena::core::Log::SeverityLevel::Error, message)
 
 #define ERROR_LOG_V(format, ...) \
-    LOG_V(mr::core::Log::SeverityLevel::Error, format, __VA_ARGS__)
+    LOG_V(athena::core::Log::SeverityLevel::Error, format, __VA_ARGS__)
 
 #define CRITICAL_LOG(message) \
-    LOG(mr::core::Log::SeverityLevel::Critical, message)
+    LOG(athena::core::Log::SeverityLevel::Critical, message)
 
 #define CRITICAL_LOG_V(format, ...) \
-    LOG(mr::core::Log::SeverityLevel::Critical, format, __VA_ARGS__)
+    LOG(athena::core::Log::SeverityLevel::Critical, format, __VA_ARGS__)
 
 #endif

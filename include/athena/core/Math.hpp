@@ -1,5 +1,5 @@
-#ifndef MR_INCLUDE_MR_CORE_MATH_HPP
-#define MR_INCLUDE_MR_CORE_MATH_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_CORE_MATH_HPP
+#define ATHENA_INCLUDE_ATHENA_CORE_MATH_HPP
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include <glm/gtx/projection.hpp>
 #include <glm/gtc/constants.hpp>
 
-namespace mr
+namespace athena
 {
     namespace core
     {

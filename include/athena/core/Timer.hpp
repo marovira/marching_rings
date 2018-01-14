@@ -1,11 +1,11 @@
-#ifndef MR_INCLUDE_MR_CORE_TIMER_HPP
-#define MR_INCLUDE_MR_CORE_TIMER_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_CORE_TIMER_HPP
+#define ATHENA_INCLUDE_ATHENA_CORE_TIMER_HPP
 
 #pragma once
 
 #include <chrono>
 
-namespace mr
+namespace athena
 {
     namespace core
     {

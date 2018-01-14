@@ -1,5 +1,5 @@
-#ifndef MR_INCLUDE_MR_CORE_CONSTANTS_HPP
-#define MR_INCLUDE_MR_CORE_CONSTANTS_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_CORE_CONSTANTS_HPP
+#define ATHENA_INCLUDE_ATHENA_CORE_CONSTANTS_HPP
 
 #pragma once
 
@@ -13,7 +13,7 @@
 #undef min
 #endif
 
-namespace mr
+namespace athena
 {
     namespace core
     {
