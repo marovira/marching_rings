@@ -13,13 +13,8 @@ namespace athena
     {
         using FilterFn = std::function<float(float)>;
 
-        template <FilterFn filter>
         class ImplicitField;
-
-        template <FilterFn filter>
         class Sphere;
-
-        template <FilterFn filter>
         class Torus;
     }
 }
