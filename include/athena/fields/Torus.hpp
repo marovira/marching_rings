@@ -9,8 +9,7 @@ namespace athena
 {
     namespace fields
     {
-        template <typename FilterFn filter>
-        class Torus : public ImplicitField<filter>
+        class Torus : public ImplicitField
         {
         public:
             Torus() :
@@ -34,22 +33,31 @@ namespace athena
 
             core::Normal grad(core::Point const& p) const override
             {
-                // TODO: Fill me in!
                 using core::Normal;
-                return Normal(0.0f);
+
+                float sqrt = glm::length(p.xy() - mCentre.xy());
+                float dx = 2.0f * (mInner - sqrt) * (p.x - mCentre.x) / sqrt;
+                float dy = 2.0f * (mInner - sqrt) * (p.y - mCentre.y) / sqrt;
+                float dz = 2.0f * (p.z - mCentre.z);
+
+                return Normal(dx, dy, dz);
             }
 
             core::Point getSeed() const
             {
-                // TODO: Fill me in!
-                return core::Point(0.0f);
+                return mCentre + mInner;
             }
 
         private:
             float sdf(core::Point const& p) const override
             {
-                // TODO: Fill me in!
-                return 0.0f;
+                using core::Point;
+                using core::Point2;
+
+                float root = glm::length(p.xy() - mCentre.xy());
+                float z = glm::length(p.z - mCentre.z);
+                float left = (mInner - root) * (mInner - root);
+                return left + z - (mOuter * mOuter);
             }
 
             float mInner, mOuter;

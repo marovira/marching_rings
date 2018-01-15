@@ -9,8 +9,7 @@ namespace athena
 {
     namespace fields
     {
-        template <FilterFn filter>
-        class Sphere : public ImplicitField<filter>
+        class Sphere : public ImplicitField
         {
         public:
             Sphere() :
@@ -35,7 +34,7 @@ namespace athena
 
             core::Normal grad(core::Point const& p) const override
             {
-                return 2.0f * p;
+                return 2.0f * (p - mCentre);
             }
 
             core::Point getSeed() const
@@ -46,7 +45,7 @@ namespace athena
         private:
             float sdf(core::Point const& p) const override
             {
-                return glm::length(p) - mRadius;
+                return glm::length(p - mCentre) - mRadius;
             }
 
             float mRadius;
