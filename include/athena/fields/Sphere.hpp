@@ -24,13 +24,6 @@ namespace athena
 
             ~Sphere() = default;
 
-            core::BBox getBBox() const override
-            {
-                using core::BBox;
-                using core::Point;
-
-                return BBox(Point(-mRadius), Point(mRadius));
-            }
 
             core::Normal grad(core::Point const& p) const override
             {
@@ -46,6 +39,14 @@ namespace athena
             float sdf(core::Point const& p) const override
             {
                 return glm::length(p - mCentre) - mRadius;
+            }
+
+            core::BBox box() const override
+            {
+                using core::BBox;
+                using core::Point;
+
+                return BBox(Point(-mRadius), Point(mRadius));
             }
 
             float mRadius;

@@ -21,7 +21,12 @@ namespace athena
 
             virtual ~ImplicitField() = default;
 
-            virtual core::BBox getBBox() const = 0;
+            core::BBox getBBox() const
+            {
+                auto b = box();
+                b.expand(1.0f);
+                return b;
+            }
 
             void setFilter(FilterFn const& filter)
             {
@@ -38,6 +43,7 @@ namespace athena
 
         protected:
             virtual float sdf(core::Point const& p) const = 0;
+            virtual core::BBox box() const = 0;
 
         private:
             FilterFn mFilter;

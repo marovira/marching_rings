@@ -26,10 +26,6 @@ namespace athena
 
             ~Torus() = default;
 
-            core::BBox getBBox() const override
-            {
-                return core::BBox();
-            }
 
             core::Normal grad(core::Point const& p) const override
             {
@@ -58,6 +54,15 @@ namespace athena
                 float z = glm::length(p.z - mCentre.z);
                 float left = (mInner - root) * (mInner - root);
                 return left + z - (mOuter * mOuter);
+            }
+
+            core::BBox box() const override
+            {
+                using core::Point;
+
+                Point p = {  mInner + mOuter,  mInner + mOuter, -mOuter };
+                Point q = { -mInner - mOuter, -mInner - mOuter,  mOuter };
+                return core::BBox(p, q);
             }
 
             float mInner, mOuter;
