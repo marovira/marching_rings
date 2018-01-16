@@ -6,6 +6,7 @@
 #include "athena/Athena.hpp"
 
 #include <functional>
+#include <memory>
 
 namespace athena
 {
@@ -16,6 +17,8 @@ namespace athena
         class ImplicitField;
         class Sphere;
         class Torus;
+
+        using ImplicitFieldPtr = std::shared_ptr<ImplicitField>;
     }
 }
 
