@@ -8,6 +8,7 @@
 #include "athena/tree/BlobTree.hpp"
 
 #include <string>
+#include <cinttypes>
 
 namespace athena
 {
@@ -23,13 +24,30 @@ namespace athena
             void setModel(tree::BlobTree const& model);
             void setName(std::string const& name);
 
-            void polygonize();
+            void polygonize(std::size_t svSize, std::size_t gridSize);
 
             void saveCubicLattice() const;
 
         private:
+            template <typename T>
+            core::Point createCellPoint(T x, T y, T z, core::Point const& delta)
+            {
+                core::Point pt;
+                auto const& start = mMin;
+
+                pt = start + core::Point(x, y, z) * delta;
+            }
+
+            core::Point createCellPoint(glm::u32vec3 const& p,
+                core::Point const& delta);
+            core::Point createCellPoint(glm::u64vec3 const& p,
+                core::Point const& delta);
+
+            core::Point  mMin, mMax;
             tree::BlobTree mModel;
             std::string mName;
+
+            core::Vector mGridDelta, mSvDelta;
         };
     }
 }

@@ -7,27 +7,27 @@
 #include "athena/fields/ImplicitField.hpp"
 
 #include <vector>
+#include <cinttypes>
 
 namespace athena
 {
     namespace blob
     {
-        class SuperVoxel
+        struct SuperVoxel
         {
-        public:
             SuperVoxel() = default;
+            SuperVoxel(glm::u32vec3 const& i, 
+                std::vector<fields::ImplicitFieldPtr> const& f, 
+                core::BBox const& v);
             ~SuperVoxel() = default;
-
-            void setFields(std::vector<fields::ImplicitFieldPtr> const& fields);
-            void setVolume(core::BBox const& volume);
-            core::BBox getVolume() const;
 
             float eval(core::Point const& p) const;
             core::Normal grad(core::Point const& p) const;
 
-        private:
-            std::vector<fields::ImplicitFieldPtr> mFields;
-            core::BBox mVolume;
+            glm::u32vec3 id;
+            std::vector<fields::ImplicitFieldPtr> fields;
+            core::BBox volume;
+
         };
     }
 }

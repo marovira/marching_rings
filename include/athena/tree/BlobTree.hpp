@@ -28,8 +28,10 @@ namespace athena
                 getOverlappingFields(core::BBox const& box) const;
 
             core::BBox getTreeBox() const;
+            std::vector<core::Point> getSeeds() const;
 
         private:
+            std::vector<core::Point> mSeeds;
             std::vector<NodePtr> mNodes;
             NodePtr mTree;
         };

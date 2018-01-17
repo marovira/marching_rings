@@ -10,6 +10,7 @@ namespace athena
         void BlobTree::insertField(fields::ImplicitFieldPtr const& field)
         {
             mNodes.push_back(std::make_shared<Node>(field));
+            mSeeds.push_back(field->getSeed());
         }
 
         void BlobTree::inserFields(
@@ -53,6 +54,16 @@ namespace athena
             core::BBox const& box) const
         {
             return mTree->visit(box);
+        }
+
+        core::BBox BlobTree::getTreeBox() const
+        {
+            return mTree->getBBox();
+        }
+
+        std::vector<core::Point> BlobTree::getSeeds() const
+        {
+            return mSeeds;
         }
     }
 }
