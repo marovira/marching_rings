@@ -5,6 +5,7 @@
 
 #include "Blob.hpp"
 #include "SuperVoxel.hpp"
+#include "Voxel.hpp"
 #include "athena/tree/BlobTree.hpp"
 
 #include <string>
@@ -48,6 +49,7 @@ namespace athena
             std::string mName;
 
             core::Vector mGridDelta, mSvDelta;
+            std::vector<Voxel> mVoxels;
         };
     }
 }

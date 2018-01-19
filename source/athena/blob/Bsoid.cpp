@@ -4,6 +4,8 @@
 
 #include <cassert>
 #include <unordered_map>
+#include <map>
+#include <queue>
 
 namespace athena
 {
@@ -72,14 +74,144 @@ namespace athena
                 }
             }
 
+            std::map<std::uint64_t, VoxelPoint> seenPoints;
+            std::map<std::uint64_t, VoxelId> seenVoxels;
+
+            auto generateVoxel = 
+                [this, &seenPoints, svSize, gridSize, superVoxelList](Voxel& v)
+            {
+                int d = 0;
+                std::vector<PointId> decals = 
+                {
+                    {0, 0, 0},
+                    {1, 0, 0},
+                    {1, 0, 1},
+                    {0, 0, 1},
+                    {0, 1, 0},
+                    {1, 1, 0},
+                    {1, 1, 1},
+                    {0, 1, 1}
+                };
+
+                for (auto& decal : decals)
+                {
+                    auto decalId = v.id + decal;
+                    auto entry = seenPoints.find(
+                        BsoidHash64::hash(decalId.x, decalId.y, decalId.z));
+                    if (entry != seenPoints.end())
+                    {
+                        v.points[d] = (*entry).second;
+                    }
+                    else
+                    {
+                        auto pt = createCellPoint(decalId, mGridDelta);
+                        auto svId = decalId / svSize;
+                        auto svHash = BsoidHash32::hash(svId.x, svId.y, svId.z);
+                        auto sv = (*superVoxelList.find(svHash)).second;
+                        VoxelPoint vp(pt, sv.eval(pt), sv.grad(pt));
+                        auto hash = BsoidHash64::hash(decalId.x, decalId.y, decalId.z);
+                        seenPoints.insert(
+                            std::pair<std::uint64_t, VoxelPoint>(hash, vp));
+                        v.points[d] = vp;
+                    }
+                    ++d;
+                }
+            };
+
+            auto getEdges = [this](Voxel const& v)
+            {
+                VoxelPoint start, end;
+                int edgeId = 0;
+                std::vector<int> edges;
+
+                for (std::size_t i = 0; i < v.points.size(); ++i)
+                {
+                    start = v.points[i];
+                    end = v.points[(i + 1) % v.points.size()];
+                    float val1 = start.value.w - 0.5f;
+                    float val2 = end.value.w - 0.0f;
+                    if (glm::sign(val1) != glm::sign(val2))
+                    {
+                        edges.push_back(edgeId);
+                    }
+
+                    edgeId++;
+                }
+
+                return edges;
+            };
+
             // Now that we have the super-voxels, let's grab all of the seeds
             // from our model.
             auto seeds = mModel.getSeeds();
 
-            // For each seed, let's find the voxel that they belong to.
+            std::queue<PointId> frontier;
             for (auto& seed : seeds)
             {
-                glm::u64vec3 id = glm::floor(seed / static_cast<float>(gridSize));
+                PointId id = glm::floor(seed / static_cast<float>(gridSize));
+                Voxel v;
+                v.id = id;
+                generateVoxel(v);
+                frontier.push(id);
+            }
+
+            //std::map<int, glm::ivec3> edgeDecals;
+            std::vector<std::vector<glm::ivec3>> edgeDecals;
+
+            while (!frontier.empty())
+            {
+                // Grab a voxel from the queue.
+                auto top = frontier.front();
+                frontier.pop();
+
+                // Check if we have seen this voxel before.
+                if (seenVoxels.find(BsoidHash64::hash(top.x, top.y, top.z)) !=
+                    seenVoxels.end())
+                {
+                    // We have, so do nothing.
+                }
+                else
+                {
+                    // We haven't seen it before, so add it to our list and
+                    // proceed.
+                    seenVoxels.insert(std::pair<std::uint64_t, VoxelId>(
+                        BsoidHash64::hash(top.x, top.y, top.z), top));
+                }
+
+                // Now fill its values.
+                Voxel v(top);
+                generateVoxel(v);
+
+                // Now check how many edges cross the surface.
+                auto edges = getEdges(v);
+                if (edges.empty())
+                {
+                    continue;
+                }
+
+                for (auto& edge : edges)
+                {
+                    // Grab the decal for the corresponding neighbour.
+                    auto decals = edgeDecals[edge];
+
+                    // Now get the corresponding voxel id.
+                    for (auto& decal : decals)
+                    {
+                        auto neighbourDecal = v.id;
+                        v.id.x += decal.x;
+                        v.id.y += decal.y;
+                        v.id.z += decal.z;
+
+                        if (!Voxel(neighbourDecal).isValid())
+                        {
+                            continue;
+                        }
+
+                        frontier.push(neighbourDecal);
+                    }
+                }
+
+                mVoxels.push_back(v);
             }
         }
 
