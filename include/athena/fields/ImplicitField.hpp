@@ -35,7 +35,7 @@ namespace athena
 
             float eval(core::Point const& p) const
             {
-                return wyvill(sdf(p));
+                return mFilter(sdf(p));
             }
 
             virtual core::Normal grad(core::Point const& p) const = 0;
