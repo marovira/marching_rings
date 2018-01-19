@@ -7,7 +7,7 @@ namespace athena
 {
     namespace fields
     {
-        float wyvill(float d)
+        inline float wyvill(float d)
         {
             if (d < 0.0f)
             {
@@ -25,7 +25,7 @@ namespace athena
             }
         }
 
-        float global(float d)
+        inline float global(float d)
         {
             return d;
         }
