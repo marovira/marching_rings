@@ -60,7 +60,10 @@ namespace athena
             bool isValid() const
             {
                 glm::u64vec3 invalid(invalidUint64());
-                return id != invalid;
+                return (
+                    id.x != invalid.x &&
+                    id.y != invalid.y && 
+                    id.z != invalid.z);
             }
 
             std::array<VoxelPoint, 8> points;
