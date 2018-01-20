@@ -1,11 +1,16 @@
 #include "athena/blob/Bsoid.hpp"
 #include "athena/blob/Hash.hpp"
 #include "athena/blob/Voxel.hpp"
+#include "athena/blob/Tables.hpp"
+#include "athena/core/Log.hpp"
 
 #include <cassert>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include <queue>
+#include <fstream>
+#include <sstream>
 
 namespace athena
 {
@@ -41,6 +46,10 @@ namespace athena
             // Next compute the deltas for our super-voxels and grid.
             auto const& start = mModel.getTreeBox().pMin;
             auto const& end = mModel.getTreeBox().pMax;
+            mMin = start;
+            mMax = end;
+            mGridSize = gridSize;
+            mSvSize = svSize;
 
             mGridDelta = (end - start) / static_cast<float>(gridSize);
             mSvDelta = (end - start) / static_cast<float>(svSize);
@@ -81,21 +90,15 @@ namespace athena
                 [this, &seenPoints, svSize, gridSize, superVoxelList](Voxel& v)
             {
                 int d = 0;
-                std::vector<PointId> decals = 
-                {
-                    {0, 0, 0},
-                    {1, 0, 0},
-                    {1, 0, 1},
-                    {0, 0, 1},
-                    {0, 1, 0},
-                    {1, 1, 0},
-                    {1, 1, 1},
-                    {0, 1, 1}
-                };
 
-                for (auto& decal : decals)
+                for (auto& decal : VoxelDecals)
                 {
                     auto decalId = v.id + decal;
+                    if (!isValidId(decalId))
+                    {
+                        continue;
+                    }
+
                     auto entry = seenPoints.find(
                         BsoidHash64::hash(decalId.x, decalId.y, decalId.z));
                     if (entry != seenPoints.end())
@@ -107,6 +110,11 @@ namespace athena
                         auto pt = createCellPoint(decalId, mGridDelta);
                         auto svId = decalId / svSize;
                         auto svHash = BsoidHash32::hash(svId.x, svId.y, svId.z);
+                        if (superVoxelList.find(svHash) == superVoxelList.end())
+                        {
+                            ERROR_LOG("Something went wrong!");
+                            __debugbreak();
+                        }
                         auto sv = (*superVoxelList.find(svHash)).second;
                         VoxelPoint vp(pt, sv.eval(pt), sv.grad(pt));
                         auto hash = BsoidHash64::hash(decalId.x, decalId.y, decalId.z);
@@ -155,9 +163,6 @@ namespace athena
                 frontier.push(id);
             }
 
-            //std::map<int, glm::ivec3> edgeDecals;
-            std::vector<std::vector<glm::ivec3>> edgeDecals;
-
             while (!frontier.empty())
             {
                 // Grab a voxel from the queue.
@@ -169,6 +174,7 @@ namespace athena
                     seenVoxels.end())
                 {
                     // We have, so do nothing.
+                    continue;
                 }
                 else
                 {
@@ -192,17 +198,17 @@ namespace athena
                 for (auto& edge : edges)
                 {
                     // Grab the decal for the corresponding neighbour.
-                    auto decals = edgeDecals[edge];
+                    auto decals = EdgeDecals[edge];
 
                     // Now get the corresponding voxel id.
                     for (auto& decal : decals)
                     {
                         auto neighbourDecal = v.id;
-                        v.id.x += decal.x;
-                        v.id.y += decal.y;
-                        v.id.z += decal.z;
+                        neighbourDecal.x += decal.x;
+                        neighbourDecal.y += decal.y;
+                        neighbourDecal.z += decal.z;
 
-                        if (!Voxel(neighbourDecal).isValid())
+                        if (!isValidId(neighbourDecal))
                         {
                             continue;
                         }
@@ -217,7 +223,139 @@ namespace athena
 
         void Bsoid::saveCubicLattice() const
         {
+            struct CellModel
+            {
+                CellModel() = default;
 
+                void constructModel(std::vector<Voxel> const& voxels)
+                {
+                    using core::Point;
+
+                    std::vector<Point> verts;
+                    std::vector<std::uint32_t> idxs;
+                    std::uint32_t start = 0;
+                    for (auto& cell : voxels)
+                    {
+                        for (auto& pt : cell.points)
+                        {
+                            verts.push_back(pt.value.xyz());
+                        }
+
+                        idxs.push_back(start);
+                        idxs.push_back(start + 1);
+
+                        idxs.push_back(start + 1);
+                        idxs.push_back(start + 2);
+
+                        idxs.push_back(start + 2);
+                        idxs.push_back(start + 3);
+
+                        idxs.push_back(start + 3);
+                        idxs.push_back(start);
+
+                        idxs.push_back(start + 4);
+                        idxs.push_back(start + 5);
+
+                        idxs.push_back(start + 5);
+                        idxs.push_back(start + 6);
+
+                        idxs.push_back(start + 6);
+                        idxs.push_back(start + 7);
+
+                        idxs.push_back(start + 7);
+                        idxs.push_back(start + 4);
+
+                        idxs.push_back(start);
+                        idxs.push_back(start + 4);
+
+                        idxs.push_back(start + 1);
+                        idxs.push_back(start + 5);
+
+                        idxs.push_back(start + 2);
+                        idxs.push_back(start + 6);
+
+                        idxs.push_back(start + 3);
+                        idxs.push_back(start + 7);
+
+                        start = static_cast<std::uint32_t>(verts.size());
+                    }
+
+                    struct LinePoint
+                    {
+                        LinePoint(Point const& p) :
+                            point(p)
+                        { }
+
+                        LinePoint(Point const& p, std::uint32_t i) :
+                            point(p),
+                            index(i)
+                        { }
+
+                        bool operator==(LinePoint const& rhs) const
+                        {
+                            return point == rhs.point;
+                        }
+
+                        bool operator!=(LinePoint const& rhs) const
+                        {
+                            return !(*this == rhs);
+                        }
+
+                        std::uint32_t index;
+                        Point point;
+                    };
+
+                    struct PointHash
+                    {
+                        std::size_t operator()(LinePoint const& p) const
+                        {
+                            return std::hash<float>()(p.point.x + p.point.y +
+                                p.point.z);
+                        }
+                    };
+
+                    std::unordered_set<LinePoint, PointHash> uniqueVertices;
+                    std::uint32_t current = 0;
+                    for (auto& idx : idxs)
+                    {
+                        // Check if we have seen this vertex before.
+                        auto pt = verts[idx];
+                        if (uniqueVertices.find(pt) == uniqueVertices.end())
+                        {
+                            // We haven't, so increase the count and insert.
+                            indices.push_back(current);
+                            vertices.push_back(pt);
+
+                            uniqueVertices.emplace(pt, current);
+                            current++;
+                        }
+                        else
+                        {
+                            // We have seen this vertex, so grab it's index.
+                            auto uniqueV = *uniqueVertices.find(pt);
+                            indices.push_back(uniqueV.index);
+                        }
+                    }
+                }
+
+                std::vector<core::Point> vertices;
+                std::vector<std::uint32_t> indices;
+            };
+
+            std::string filename = mName + ".obj";
+            std::fstream file(filename, std::fstream::out);
+
+            CellModel model;
+            model.constructModel(mVoxels);
+
+            file << "# number of vertices: " << model.vertices.size() << "\n";
+            for (auto& vertex : model.vertices)
+            {
+                file << "v " << vertex.x << " " << vertex.y << " " << 
+                    vertex.z << "\n";
+            }
+
+            file.close();
         }
 
         core::Point Bsoid::createCellPoint(glm::u32vec3 const& p,
@@ -230,6 +368,24 @@ namespace athena
             core::Point const& delta)
         {
             return createCellPoint(p.x, p.y, p.z, delta);
+        }
+
+        bool Bsoid::isValidId(PointId const& id)
+        {
+            // First things first, check if the id isn't negative.
+            if (!Voxel(id).isValid())
+            {
+                return false;
+            }
+
+            // Now check that it hasn't run off the edge of the grid on the
+            // positive side.
+            PointId maxId(mGridSize);
+            return (
+                id.x < maxId.x &&
+                id.y < maxId.y &&
+                id.z < maxId.z
+                );
         }
     }
 }

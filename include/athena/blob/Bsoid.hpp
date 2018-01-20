@@ -37,6 +37,7 @@ namespace athena
                 auto const& start = mMin;
 
                 pt = start + core::Point(x, y, z) * delta;
+                return pt;
             }
 
             core::Point createCellPoint(glm::u32vec3 const& p,
@@ -44,9 +45,12 @@ namespace athena
             core::Point createCellPoint(glm::u64vec3 const& p,
                 core::Point const& delta);
 
+            bool isValidId(PointId const& id);
+
             core::Point  mMin, mMax;
             tree::BlobTree mModel;
             std::string mName;
+            std::size_t mGridSize, mSvSize;
 
             core::Vector mGridDelta, mSvDelta;
             std::vector<Voxel> mVoxels;
