@@ -1,0 +1,6 @@
+set(ATHENA_SHADER_GLOBAL_ROOT "${ATHENA_SHADER_ROOT}/athena/global")
+
+set(ATHENA_SHADER_GLOBAL_LIST
+    "${ATHENA_SHADER_GLOBAL_ROOT}/UniformMatrices.glsl"
+    "${ATHENA_SHADER_GLOBAL_ROOT}/LayoutLocations.glsl"
+    PARENT_SCOPE)

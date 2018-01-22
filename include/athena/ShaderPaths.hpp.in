@@ -1,0 +1,11 @@
+#ifndef ATHENA_INCLUDE_ATHENA_SHADER_PATHS_HPP
+#define ATHENA_INCLUDE_ATHENA_SHADER_PATHS_HPP
+
+#pragma once
+
+namespace athena
+{
+    constexpr const char ShaderDirectory[] = "@ATHENA_SHADER_ROOT@/";
+}
+
+#endif
