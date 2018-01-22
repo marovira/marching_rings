@@ -3,4 +3,5 @@ build/
 
 # Generated files
 include/athena/Athena.hpp
+include/athena/ShaderPaths.hpp
 doc/html

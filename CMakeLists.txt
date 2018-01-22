@@ -29,11 +29,12 @@ set(ATHENA_VERSION_FULL
 # Directory Variables.
 #=============================================================================#
 set(ATHENA_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
-set(ATHENA_GLM_ROOT "${ATHENA_SOURCE_DIR}/external/glm")
 set(ATHENA_INCLUDE_ROOT "${ATHENA_SOURCE_DIR}/include")
 set(ATHENA_SOURCE_ROOT "${ATHENA_SOURCE_DIR}/source")
+set(ATHENA_SHADER_ROOT "${ATHENA_SOURCE_DIR}/shader")
 set(ATHENA_DOCS_ROOT "${ATHENA_SOURCE_DIR}/docs")
 set(ATHENA_CONFIG_ROOT "${ATHENA_SOURCE_DIR}/config")
+set(ATHENA_ATLAS_ROOT "${ATHENA_SOURCE_DIR}/lib/atlas")
 
 #=============================================================================#
 # Compilation settings.
@@ -52,8 +53,11 @@ endif()
 #=============================================================================#
 # Subdirectories.
 #=============================================================================#
+add_subdirectory("${ATHENA_ATLAS_ROOT}")
+
 add_subdirectory("${ATHENA_INCLUDE_ROOT}/athena")
 add_subdirectory("${ATHENA_SOURCE_ROOT}")
+add_subdirectory("${ATHENA_SHADER_ROOT}")
 
 if (DOXYGEN_FOUND AND ATHENA_BUILD_DOCS)
     add_subdirectory("${ATHENA_DOCS_ROOT}")
@@ -63,19 +67,23 @@ endif()
 # Include directories.
 #=============================================================================#
 include_directories(
+    ${ATLAS_INCLUDE_DIRS}
     ${ATHENA_INCLUDE_ROOT}
-    ${ATHENA_GLM_ROOT}
+    ${ATHENA_SHADER_ROOT}
     )
 
 #=============================================================================#
 # Executable.
 #=============================================================================#
 include("${ATHENA_CONFIG_ROOT}/SourceGroups.cmake")
-add_executable(athena ${ATHENA_SOURCE_LIST} ${ATHENA_INCLUDE_LIST})
+add_executable(athena ${ATHENA_SOURCE_LIST} ${ATHENA_INCLUDE_LIST}
+    ${ATHENA_SHADER_LIST})
 
 # Only link with TBB if we are using a parallel build.
 if (ATHENA_PARALLEL)
-    target_link_libraries(athena tbb)
+    target_link_libraries(athena tbb ${ATLAS_LIBRARIES})
+else()
+    target_link_libraries(athena ${ATLAS_LIBRARIES})
 endif()
 
 set_target_properties(athena PROPERTIES FOLDER "athena")
