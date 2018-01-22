@@ -15,6 +15,7 @@ endif()
 # Any compile-time options go here.
 option(ATHENA_BUILD_DOCS "Build marching rings documentation" ON)
 option(ATHENA_PARALLEL "Enable parallelization using TBB" ON)
+option(ATHENA_GUI "Enable GUI for polygonizer" ON)
 
 # Set the version data.
 set(ATHENA_VERSION_MAJOR "0")

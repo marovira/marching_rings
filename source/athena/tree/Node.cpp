@@ -18,14 +18,14 @@ namespace athena
             mBox = field->getBBox();
         }
 
-        core::BBox Node::getBBox() const
+        atlas::utils::BBox Node::getBBox() const
         {
             return mBox;
         }
 
         void Node::addChild(NodePtr const& child)
         {
-            using core::join;
+            using atlas::utils::join;
 
             mBox = join(mBox, child->getBBox());
             mChildren.push_back(child);
@@ -55,7 +55,7 @@ namespace athena
         }
 
         std::vector<fields::ImplicitFieldPtr> Node::visit(
-            core::BBox const& cell) const
+            atlas::utils::BBox const& cell) const
         {
             // First check against our box. If the cell isn't inside,
             // return immediately.

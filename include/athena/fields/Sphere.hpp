@@ -17,7 +17,7 @@ namespace athena
                 mCentre(0.0f)
             { }
 
-            Sphere(float radius, core::Point const& centre) :
+            Sphere(float radius, atlas::math::Point const& centre) :
                 mRadius(radius),
                 mCentre(centre)
             { }
@@ -25,32 +25,32 @@ namespace athena
             ~Sphere() = default;
 
 
-            core::Normal grad(core::Point const& p) const override
+            atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
                 return 2.0f * (p - mCentre);
             }
 
-            core::Point getSeed() const
+            atlas::math::Point getSeed() const
             {
                 return mCentre + mRadius;
             }
 
         private:
-            float sdf(core::Point const& p) const override
+            float sdf(atlas::math::Point const& p) const override
             {
                 return glm::length(p - mCentre) - mRadius;
             }
 
-            core::BBox box() const override
+            atlas::utils::BBox box() const override
             {
-                using core::BBox;
-                using core::Point;
+                using atlas::utils::BBox;
+                using atlas::math::Point;
 
                 return BBox(Point(-mRadius), Point(mRadius));
             }
 
             float mRadius;
-            core::Point mCentre;
+            atlas::math::Point mCentre;
         };
     }
 }

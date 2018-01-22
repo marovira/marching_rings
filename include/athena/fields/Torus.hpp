@@ -18,7 +18,7 @@ namespace athena
                 mCentre(0.0f)
             { }
 
-            Torus(float inner, float outer, core::Point const& centre) :
+            Torus(float inner, float outer, atlas::math::Point const& centre) :
                 mInner(inner),
                 mOuter(outer),
                 mCentre(centre)
@@ -27,9 +27,9 @@ namespace athena
             ~Torus() = default;
 
 
-            core::Normal grad(core::Point const& p) const override
+            atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
-                using core::Normal;
+                using atlas::math::Normal;
 
                 float sqrt = glm::length(p.xy() - mCentre.xy());
                 float dx = 2.0f * (mInner - sqrt) * (p.x - mCentre.x) / sqrt;
@@ -39,16 +39,16 @@ namespace athena
                 return Normal(dx, dy, dz);
             }
 
-            core::Point getSeed() const
+            atlas::math::Point getSeed() const
             {
                 return mCentre + mInner;
             }
 
         private:
-            float sdf(core::Point const& p) const override
+            float sdf(atlas::math::Point const& p) const override
             {
-                using core::Point;
-                using core::Point2;
+                using atlas::math::Point;
+                using atlas::math::Point2;
 
                 float root = glm::length(p.xy() - mCentre.xy());
                 float z = glm::length(p.z - mCentre.z);
@@ -56,17 +56,17 @@ namespace athena
                 return left + z - (mOuter * mOuter);
             }
 
-            core::BBox box() const override
+            atlas::utils::BBox box() const override
             {
-                using core::Point;
+                using atlas::math::Point;
 
                 Point p = {  mInner + mOuter,  mInner + mOuter, -mOuter };
                 Point q = { -mInner - mOuter, -mInner - mOuter,  mOuter };
-                return core::BBox(p, q);
+                return atlas::utils::BBox(p, q);
             }
 
             float mInner, mOuter;
-            core::Point mCentre;
+            atlas::math::Point mCentre;
         };
     }
 }

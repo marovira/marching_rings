@@ -51,17 +51,17 @@ namespace athena
         }
 
         std::vector<fields::ImplicitFieldPtr> BlobTree::getOverlappingFields(
-            core::BBox const& box) const
+            atlas::utils::BBox const& box) const
         {
             return mTree->visit(box);
         }
 
-        core::BBox BlobTree::getTreeBox() const
+        atlas::utils::BBox BlobTree::getTreeBox() const
         {
             return mTree->getBBox();
         }
 
-        std::vector<core::Point> BlobTree::getSeeds() const
+        std::vector<atlas::math::Point> BlobTree::getSeeds() const
         {
             return mSeeds;
         }

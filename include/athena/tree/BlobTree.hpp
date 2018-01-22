@@ -25,13 +25,13 @@ namespace athena
             void insertNodeTree(std::vector<std::vector<int>> const& tree);
 
             std::vector<fields::ImplicitFieldPtr>
-                getOverlappingFields(core::BBox const& box) const;
+                getOverlappingFields(atlas::utils::BBox const& box) const;
 
-            core::BBox getTreeBox() const;
-            std::vector<core::Point> getSeeds() const;
+            atlas::utils::BBox getTreeBox() const;
+            std::vector<atlas::math::Point> getSeeds() const;
 
         private:
-            std::vector<core::Point> mSeeds;
+            std::vector<atlas::math::Point> mSeeds;
             std::vector<NodePtr> mNodes;
             NodePtr mTree;
         };

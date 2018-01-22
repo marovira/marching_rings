@@ -21,7 +21,7 @@ namespace athena
 
             void setField(fields::ImplicitFieldPtr const& field);
 
-            core::BBox getBBox() const;
+            atlas::utils::BBox getBBox() const;
 
             void addChild(NodePtr const& child);
             void addChildren(std::vector<NodePtr> const& children);
@@ -32,13 +32,13 @@ namespace athena
             NodePtr getParent() const;
 
             std::vector<fields::ImplicitFieldPtr> visit(
-                core::BBox const& cell) const;
+                atlas::utils::BBox const& cell) const;
 
         private:
             fields::ImplicitFieldPtr mField;
             NodePtr mParent;
             std::vector<NodePtr> mChildren;
-            core::BBox mBox;
+            atlas::utils::BBox mBox;
         };
     }
 }

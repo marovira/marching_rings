@@ -5,8 +5,9 @@
 
 #include "Fields.hpp"
 #include "Filters.hpp"
-#include "athena/core/Math.hpp"
-#include "athena/core/BBox.hpp"
+
+#include <atlas/math/Math.hpp>
+#include <atlas/utils/BBox.hpp>
 
 namespace athena
 {
@@ -21,7 +22,7 @@ namespace athena
 
             virtual ~ImplicitField() = default;
 
-            core::BBox getBBox() const
+            atlas::utils::BBox getBBox() const
             {
                 auto b = box();
                 b.expand(1.0f);
@@ -33,17 +34,18 @@ namespace athena
                 mFilter = filter;
             }
 
-            float eval(core::Point const& p) const
+            float eval(atlas::math::Point const& p) const
             {
                 return mFilter(sdf(p));
             }
 
-            virtual core::Normal grad(core::Point const& p) const = 0;
-            virtual core::Point getSeed() const = 0;
+            virtual atlas::math::Normal grad(
+                atlas::math::Point const& p) const = 0;
+            virtual atlas::math::Point getSeed() const = 0;
 
         protected:
-            virtual float sdf(core::Point const& p) const = 0;
-            virtual core::BBox box() const = 0;
+            virtual float sdf(atlas::math::Point const& p) const = 0;
+            virtual atlas::utils::BBox box() const = 0;
 
         private:
             FilterFn mFilter;
