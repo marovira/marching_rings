@@ -7,12 +7,16 @@ source_group("include\\athena\\fields" FILES ${ATHENA_INCLUDE_FIELDS_GROUP})
 source_group("include\\athena\\tree" FILES ${ATHENA_INCLUDE_TREE_GROUP})
 source_group("include\\athena\\polygonizer" FILES 
     ${ATHENA_INCLUDE_POLYGONIZER_GROUP})
+source_group("include\\athena\\visualizer" FILES
+    ${ATHENA_INCLUDE_VISUALIZER_GROUP})
 
 source_group("source" FILES ${ATHENA_SOURCE_TOP_GROUP})
 source_group("source\\athena" FILES)
 source_group("source\\athena\\tree" FILES ${ATHENA_SOURCE_TREE_GROUP})
 source_group("source\\athena\\polygonizer" FILES 
     ${ATHENA_SOURCE_POLYGONIZER_GROUP})
+source_group("source\\athena\\visualizer" FILES
+    ${ATHENA_SOURCE_VISUALIZER_GROUP})
 
 source_group("shader" FILES ${ATHENA_SHADER_TOP_GROUP})
 source_group("shader\\athena" FILES)
