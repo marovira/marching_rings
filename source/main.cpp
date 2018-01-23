@@ -1,15 +1,45 @@
 #include "athena/Athena.hpp"
 
+#include "athena/visualizer/ModelView.hpp"
+#include "athena/visualizer/ModelVisualizer.hpp"
+
 #include "athena/fields/Sphere.hpp"
 #include "athena/tree/BlobTree.hpp"
 //#include "athena/blob/Bsoid.hpp"
 
 #include <atlas/core/Log.hpp>
+#include <atlas/utils/Application.hpp>
+#include <atlas/utils/WindowSettings.hpp>
+#include <atlas/gl/ErrorCheck.hpp>
 
 #if (ATHENA_USE_GUI)
 
 int main()
 {
+    // Atlas using.
+    using atlas::utils::WindowSettings;
+    using atlas::utils::ContextVersion;
+    using atlas::utils::Application;
+    using atlas::utils::ScenePointer;
+
+    // Polygonizer using.
+    using athena::fields::ImplicitFieldPtr;
+    using athena::fields::Sphere;
+    using athena::tree::BlobTree;
+
+    atlas::gl::setGLErrorSeverity(ATLAS_GL_ERROR_SEVERITY_HIGH |
+        ATLAS_GL_ERROR_SEVERITY_MEDIUM);
+
+    WindowSettings settings;
+    settings.contextVersion = ContextVersion(4, 5);
+    settings.isForwardCompat = TRUE;
+    settings.isMaximized = true;
+
+    Application::getInstance().createWindow(settings);
+    Application::getInstance().addScene(ScenePointer(
+        new athena::visualizer::ModelVisualizer()));
+    Application::getInstance().runApplication();
+
     return 0;
 }
 
