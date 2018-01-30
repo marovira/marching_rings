@@ -1,59 +1,60 @@
-#ifndef ATHENA_INCLUDE_ATHENA_BLOB_BSOID_HPP
-#define ATHENA_INCLUDE_ATHENA_BLOB_BSOID_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_POLYGONIZER_BSOID_HPP
+#define ATHENA_INCLUDE_ATHENA_POLYGONIZER_BSOID_HPP
 
 #pragma once
 
-#include "Blob.hpp"
-#include "SuperVoxel.hpp"
-#include "Voxel.hpp"
+#include "Polygonizer.hpp"
+#include "CrossSection.hpp"
 #include "athena/tree/BlobTree.hpp"
 
+#include <sstream>
 #include <string>
 #include <cinttypes>
+#include <vector>
 
 namespace athena
 {
-    namespace blob
+    namespace polygonizer
     {
         class Bsoid
         {
         public:
             Bsoid();
             Bsoid(tree::BlobTree const& model, std::string const& name);
+            Bsoid(Bsoid&& b);
+
             ~Bsoid() = default;
 
-            void setModel(tree::BlobTree const& model);
+            void setModel(tree::BlobTree const& tree);
+
+            void setCrossSectionDelta(float delta, SlicingAxes const& axis);
+            void setNumCrossSections(std::size_t num, SlicingAxes const& axis);
+            std::size_t numCrossSections() const;
+
+            void makeCrossSections(SlicingAxes const& axis,
+                std::uint32_t gridSize, std::uint32_t svSize);
+
+            void constructLattices();
+
+            //Lattice const& getLattice() const;
+
             void setName(std::string const& name);
+            std::string getName() const;
 
-            void polygonize(std::size_t svSize, std::size_t gridSize);
+            std::string getLog() const;
+            void clearLog();
 
-            void saveCubicLattice() const;
+            void saveLattice() const;
 
         private:
-            template <typename T>
-            core::Point createCellPoint(T x, T y, T z, core::Point const& delta)
-            {
-                core::Point pt;
-                auto const& start = mMin;
+            // Lattice mLattice;
+            tree::TreePointer mTree;
+            float mCrossSectionDelta;
 
-                pt = start + core::Point(x, y, z) * delta;
-                return pt;
-            }
+            std::vector<CrossSectionPointer> mCrossSections;
 
-            core::Point createCellPoint(glm::u32vec3 const& p,
-                core::Point const& delta);
-            core::Point createCellPoint(glm::u64vec3 const& p,
-                core::Point const& delta);
-
-            bool isValidId(PointId const& id);
-
-            core::Point  mMin, mMax;
-            tree::BlobTree mModel;
+            std::stringstream mLog;
             std::string mName;
-            std::size_t mGridSize, mSvSize;
-
-            core::Vector mGridDelta, mSvDelta;
-            std::vector<Voxel> mVoxels;
         };
     }
 }

@@ -1,5 +1,5 @@
-#ifndef ATHENA_INCLUDE_ATHENA_BLOB_HASH_HPP
-#define ATHENA_INCLUDE_ATHENA_BLOB_HASH_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_POLYGONIZER_HASH_HPP
+#define ATHENA_INCLUDE_ATHENA_POLYGONIZER_HASH_HPP
 
 #pragma once
 
@@ -7,16 +7,16 @@
 
 namespace athena
 {
-    namespace blob
+    namespace polygonizer
     {
         template <typename T>
         struct BsoidHash
         {
-            static constexpr T bits = std::numeric_limits<T>::digits / 3;
+            static constexpr T bits = std::numeric_limits<T>::digits / 2;
             static constexpr T mask = ~(static_cast<T>(0) << bits);
-            static constexpr T hash(T x, T y, T z)
+            static constexpr T hash(T x, T y)
             {
-                return ((x & mask) << bits | ((y & mask) << bits) | (z & mask));
+                return ((x & mask) << bits | ((y & mask));
             }
         };
 

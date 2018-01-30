@@ -1,16 +1,16 @@
-#ifndef ATHENA_INCLUDE_ATHENA_BLOB_VOXEL_HPP
-#define ATHENA_INCLUDE_ATHENA_BLOB_VOXEL_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_POLYGONIZER_VOXEL_HPP
+#define ATHENA_INCLUDE_ATHENA_POLYGONIZER_VOXEL_HPP
 
 #pragma once
 
-#include "athena/core/Math.hpp"
+#include <atlas/math/Math.hpp>
 
 #include <cinttypes>
 #include <array>
 
 namespace athena
 {
-    namespace blob
+    namespace polygonizer
     {
         struct VoxelPoint
         {
@@ -19,54 +19,49 @@ namespace athena
                 g(0.0f)
             { }
 
-            VoxelPoint(core::Point const& p, float v) :
+            VoxelPoint(atlas::math::Point const& p, float v) :
                 value(p, v),
                 g(0.0f)
             { }
 
-            VoxelPoint(core::Point const& p, float v, core::Normal const& grad) :
+            VoxelPoint(atlas::math::Point const& p, float v, 
+                atlas::math::Normal const& grad) :
                 value(p, v),
                 g(grad)
             { }
 
-            core::Point4 value;
-            core::Normal g;
+            atlas::math::Point4 value;
+            atlas::math::Normal g;
         };
 
-        template <typename T>
         constexpr auto invalidUint()
         {
-            return std::numeric_limits<T>::max();
+            return std::numeric_limits<std::uint32_t>::max();
         }
 
-        constexpr auto invalidUint64()
-        {
-            return invalidUint<std::uint64_t>();
-        }
 
-        using PointId = glm::u64vec3;
+        using PointId = glm::u32vec2;
         using VoxelId = PointId;
 
         struct Voxel
         {
             Voxel() :
-                id(invalidUint64())
+                id(invalidUint())
             { }
 
-            Voxel(glm::u64vec3 const& p) :
+            Voxel(glm::u64vec2 const& p) :
                 id(p)
             { }
 
             bool isValid() const
             {
-                glm::u64vec3 invalid(invalidUint64());
+                glm::u64vec2 invalid(invalidUint());
                 return (
                     id.x != invalid.x &&
-                    id.y != invalid.y && 
-                    id.z != invalid.z);
+                    id.y != invalid.y);
             }
 
-            std::array<VoxelPoint, 8> points;
+            std::array<VoxelPoint, 4> points;
             VoxelId id;
         };
     }

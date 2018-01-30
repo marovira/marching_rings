@@ -1,33 +1,48 @@
-#ifndef ATHENA_INCLUDE_ATHENA_BLOB_SUPER_VOXEL_HPP
-#define ATHENA_INCLUDE_ATHENA_BLOB_SUPER_VOXEL_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_POLYGONIZER_SUPER_VOXEL_HPP
+#define ATHENA_INLCUDE_ATHENA_POLYGONIZER_SUPER_VOXEL_HPP
 
 #pragma once
 
-#include "Blob.hpp"
 #include "athena/fields/ImplicitField.hpp"
 
+#include <atlas/math/Math.hpp>
+#include <atlas/utils/BBox.hpp>
 #include <vector>
-#include <cinttypes>
 
 namespace athena
 {
-    namespace blob
+    namespace polygonizer
     {
         struct SuperVoxel
         {
-            SuperVoxel() = default;
-            SuperVoxel(glm::u32vec3 const& i, 
-                std::vector<fields::ImplicitFieldPtr> const& f, 
-                core::BBox const& v);
-            ~SuperVoxel() = default;
+            SuperVoxel()
+            { }
 
-            float eval(core::Point const& p) const;
-            core::Normal grad(core::Point const& p) const;
+            float eval(atlas::math::Point const& p) const
+            {
+                float value = 0.0f;
+                for (auto& field : fields)
+                {
+                    value += field->eval(p);
+                }
 
-            glm::u32vec3 id;
+                return value;
+            }
+
+            atlas::math::Normal grad(atlas::math::Point const& p) const
+            {
+                atlas::math::Normal gradient;
+                for (auto& field : fields)
+                {
+                    gradient += field->grad(p);
+                }
+
+                return gradient;
+            }
+
+            glm::u32vec2 id;
             std::vector<fields::ImplicitFieldPtr> fields;
-            core::BBox volume;
-
+            atlas::utils::BBox cell;
         };
     }
 }
