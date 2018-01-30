@@ -16,7 +16,7 @@ namespace athena
             static constexpr T mask = ~(static_cast<T>(0) << bits);
             static constexpr T hash(T x, T y)
             {
-                return ((x & mask) << bits | ((y & mask));
+                return ((x & mask) << bits | (y & mask));
             }
         };
 
