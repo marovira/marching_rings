@@ -10,7 +10,6 @@ namespace athena
         void BlobTree::insertField(fields::ImplicitFieldPtr const& field)
         {
             mNodes.push_back(std::make_shared<Node>(field));
-            mSeeds.push_back(field->getSeed());
         }
 
         void BlobTree::inserFields(
@@ -47,7 +46,6 @@ namespace athena
             // The final index is the parent, so just assign that and clear
             // the copies of the node.
             mTree = mNodes[tree.size() - 1];
-            mNodes.clear();
         }
 
         std::vector<fields::ImplicitFieldPtr> BlobTree::getOverlappingFields(
@@ -61,9 +59,17 @@ namespace athena
             return mTree->getBBox();
         }
 
-        std::vector<atlas::math::Point> BlobTree::getSeeds() const
+        std::vector<atlas::math::Point> BlobTree::getSeeds(
+            atlas::math::Normal const& u) const
         {
-            return mSeeds;
+            std::vector<atlas::math::Point> seeds;
+            for (auto& node : mNodes)
+            {
+                auto s = node->getSeeds(u);
+                seeds.insert(seeds.end(), s.begin(), s.end());
+            }
+
+            return seeds;
         }
     }
 }

@@ -34,6 +34,9 @@ namespace athena
             std::vector<fields::ImplicitFieldPtr> visit(
                 atlas::utils::BBox const& cell) const;
 
+            std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const;
+
         private:
             fields::ImplicitFieldPtr mField;
             NodePtr mParent;

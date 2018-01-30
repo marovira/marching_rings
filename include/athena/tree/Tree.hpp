@@ -13,6 +13,7 @@ namespace athena
         class BlobTree;
 
         using NodePtr = std::shared_ptr<Node>;
+        using TreePointer = std::unique_ptr<BlobTree>;
     }
 }
 

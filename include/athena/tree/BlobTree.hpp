@@ -28,10 +28,10 @@ namespace athena
                 getOverlappingFields(atlas::utils::BBox const& box) const;
 
             atlas::utils::BBox getTreeBox() const;
-            std::vector<atlas::math::Point> getSeeds() const;
+            std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const;
 
         private:
-            std::vector<atlas::math::Point> mSeeds;
             std::vector<NodePtr> mNodes;
             NodePtr mTree;
         };

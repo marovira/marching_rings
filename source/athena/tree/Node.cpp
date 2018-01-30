@@ -95,5 +95,11 @@ namespace athena
 
             return ret;
         }
+
+        std::vector<atlas::math::Point> Node::getSeeds(
+            atlas::math::Normal const& u) const
+        {
+            return mField->getSeeds(u);
+        }
     }
 }
