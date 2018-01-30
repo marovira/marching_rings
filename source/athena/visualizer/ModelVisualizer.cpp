@@ -15,14 +15,14 @@ namespace athena
 {
     namespace visualizer
     {
-        ModelVisualizer::ModelVisualizer() :
+        ModelVisualizer::ModelVisualizer(std::vector<polygonizer::Bsoid>& models) :
             mCurrentView(0),
             ModellingScene()
         {
-            //for (auto&& models : models)
-            //{
-            //    mViews.emplace_back(std::move(model));
-            //}
+            for (auto&& model : models)
+            {
+                mViews.emplace_back(std::move(model));
+            }
         }
 
         void ModelVisualizer::renderScene()
@@ -80,12 +80,12 @@ namespace athena
             ImGui::End();
 
             // Render the GUI for the current view.
-            //mViews[mCurrentView].drawGui();
+            mViews[mCurrentView].drawGui();
 
             ImGui::Render();
 
             // Now render the view.
-            //mViews[mCurrentView].renderGeometry();
+            mViews[mCurrentView].renderGeometry();
         }
     }
 }
