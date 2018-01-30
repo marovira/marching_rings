@@ -18,6 +18,8 @@ namespace athena
 
         class Bsoid;
         class CrossSection;
+        struct Lattice;
+        struct Voxel;
 
         using CrossSectionPointer = std::unique_ptr<CrossSection>;
     }
