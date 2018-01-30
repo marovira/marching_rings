@@ -34,6 +34,7 @@ int main()
     settings.contextVersion = ContextVersion(4, 5);
     settings.isForwardCompat = TRUE;
     settings.isMaximized = true;
+    settings.title = "Athena " + std::string(ATHENA_VERSION_STRING);
 
     Application::getInstance().createWindow(settings);
     Application::getInstance().addScene(ScenePointer(
