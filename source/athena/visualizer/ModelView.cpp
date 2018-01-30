@@ -17,7 +17,8 @@ namespace athena
 {
     namespace visualizer
     {
-        ModelView::ModelView() :
+        ModelView::ModelView(polygonizer::Bsoid&& soid) :
+            mSoid(std::move(soid)),
             mLatticeData(GL_ARRAY_BUFFER),
             mLatticeIndices(GL_ELEMENT_ARRAY_BUFFER),
             mLatticeNumIndices(0),
@@ -57,8 +58,7 @@ namespace athena
 
         std::string ModelView::getModelName() const
         {
-            //return mCSModel.getName();
-            return "";
+            return mSoid.getName();
         }
 
         void ModelView::renderGeometry()
@@ -119,7 +119,7 @@ namespace athena
             ImGui::Separator();
             ImGui::BeginChild("Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()),
                 false, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
-            //ImGui::TextWrapped(mCSModel.getLog().c_str());
+            ImGui::TextWrapped(mSoid.getLog().c_str());
             ImGui::EndChild();
             ImGui::End();
 
@@ -136,7 +136,40 @@ namespace athena
 
         void ModelView::constructLattices()
         {
-            // TODO: Fill me in!
+            if (!mSoid.getLattice().vertices.empty())
+            {
+                return;
+            }
+
+            namespace gl = atlas::gl;
+            namespace math = atlas::math;
+
+            mSoid.constructLattices();
+
+            auto verts = mSoid.getLattice().vertices;
+            auto idx = mSoid.getLattice().indices;
+            mLatticeNumIndices = idx.size();
+
+            if (mLatticeNumIndices == 0)
+            {
+                return;
+            }
+
+            mLatticeVao.bindVertexArray();
+            mLatticeData.bufferData(
+                gl::size<math::Point>(verts.size()), verts.data(),
+                GL_STATIC_DRAW);
+            mLatticeData.vertexAttribPointer(VERTICES_LAYOUT_LOCATION, 3,
+                GL_FLOAT, GL_FALSE, 0, gl::bufferOffset<float>(0));
+            mLatticeVao.enableVertexAttribArray(VERTICES_LAYOUT_LOCATION);
+
+            mLatticeIndices.bindBuffer();
+            mLatticeIndices.bufferData(
+                gl::size<GLuint>(idx.size()), idx.data(), GL_STATIC_DRAW);
+
+            mLatticeIndices.unBindBuffer();
+            mLatticeData.unBindBuffer();
+            mLatticeVao.unBindVertexArray();
         }
     }
 }

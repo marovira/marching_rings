@@ -4,6 +4,7 @@
 #pragma once
 
 #include "athena/fields/ImplicitField.hpp"
+#include "athena/polygonizer/Bsoid.hpp"
 
 #include <atlas/utils/Geometry.hpp>
 #include <atlas/utils/Mesh.hpp>
@@ -17,7 +18,7 @@ namespace athena
         class ModelView : public atlas::utils::Geometry
         {
         public:
-            ModelView();
+            ModelView(polygonizer::Bsoid&& soid);
             ModelView(ModelView&& view) = default;
             ~ModelView() = default;
 
@@ -28,6 +29,8 @@ namespace athena
 
         private:
             void constructLattices();
+
+            polygonizer::Bsoid mSoid;
 
             atlas::gl::VertexArrayObject mLatticeVao;
             atlas::gl::Buffer mLatticeData;
