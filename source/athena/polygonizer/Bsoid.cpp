@@ -145,6 +145,11 @@ namespace athena
 
         }
 
+        Lattice const& Bsoid::getLattice() const
+        {
+            return mLattice;
+        }
+
         void Bsoid::setName(std::string const& name)
         {
             mName = name;
@@ -157,7 +162,7 @@ namespace athena
 
         std::string Bsoid::getLog() const
         { 
-            mLog.str();
+            return mLog.str();
         }
 
         void Bsoid::clearLog()
@@ -172,7 +177,5 @@ namespace athena
 
             file.close();
         }
-
-        
     }
 }
