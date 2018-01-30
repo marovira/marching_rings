@@ -30,9 +30,11 @@ namespace athena
                 return 2.0f * (p - mCentre);
             }
 
-            atlas::math::Point getSeed() const
+            std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const override
             {
-                return mCentre + mRadius;
+                float rp = (mRadius * mRadius) - glm::length(u - mCentre);
+                return { u + rp };
             }
 
         private:

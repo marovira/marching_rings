@@ -39,9 +39,10 @@ namespace athena
                 return Normal(dx, dy, dz);
             }
 
-            atlas::math::Point getSeed() const
+            std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const override
             {
-                return mCentre + mInner;
+                return {};
             }
 
         private:

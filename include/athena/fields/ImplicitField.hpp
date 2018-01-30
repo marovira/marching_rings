@@ -9,6 +9,8 @@
 #include <atlas/math/Math.hpp>
 #include <atlas/utils/BBox.hpp>
 
+#include <vector>
+
 namespace athena
 {
     namespace fields
@@ -41,7 +43,8 @@ namespace athena
 
             virtual atlas::math::Normal grad(
                 atlas::math::Point const& p) const = 0;
-            virtual atlas::math::Point getSeed() const = 0;
+            virtual std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const = 0;
 
         protected:
             virtual float sdf(atlas::math::Point const& p) const = 0;
