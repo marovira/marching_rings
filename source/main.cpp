@@ -26,7 +26,10 @@ athena::polygonizer::Bsoid makeSphere()
     tree.insertField(sphere);
     tree.insertNodeTree({ {-1} });
 
-    return Bsoid(tree, "sphere");
+    Bsoid soid(tree, "sphere");
+    soid.setNumCrossSections(8, SlicingAxes::YAxis);
+    soid.makeCrossSections(SlicingAxes::YAxis, 8, 4);
+    return soid;
 }
 
 
