@@ -1,5 +1,6 @@
 #include "athena/polygonizer/CrossSection.hpp"
 #include "athena/polygonizer/Hash.hpp"
+#include "athena/polygonizer/Tables.hpp"
 
 #include <atlas/core/Float.hpp>
 
@@ -86,7 +87,7 @@ namespace athena
             std::vector<Voxel> seedVoxels;
             for (auto& pt : seedPoints)
             {
-                auto v = pt / mGridDelta;
+                auto v = (pt - mMin) / mGridDelta;
                 PointId id;
                 id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
                 id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
@@ -123,7 +124,137 @@ namespace athena
 
         void CrossSection::marchVoxelOnSurface(std::vector<Voxel> const& seeds)
         {
+            using atlas::math::Point4;
 
+            std::map<std::uint32_t, VoxelPoint> seenPoints;
+            std::map<std::uint32_t, VoxelId> seenVoxels;
+            std::queue<PointId> frontier;
+
+            // First fill in the values of each of the seeds and insert them.
+            {
+                for (auto& seed : seeds)
+                {
+                    int i = 0;
+                    for (auto& decal : VoxelDecals)
+                    {
+                        auto decalId = seed.id + decal;
+                        auto hash = BsoidHash32::hash(decalId.x, decalId.y);
+                        auto pt = createCellPoint(decalId, mGridDelta);
+
+                        // TODO: Compute the field value for the point and then
+                        // insert them into our list of seen voxels.
+                    }
+
+                    frontier.push(seed.id);
+                }
+            }
+
+            auto generateVoxel = [this, &seenPoints](Voxel& v)
+            {
+                int d = 0;
+                for (auto& decal : VoxelDecals)
+                {
+                    auto decalId = v.id + decal;
+                    auto entry = seenPoints.find(
+                        BsoidHash32::hash(decalId.x, decalId.y));
+                    if (entry != seenPoints.end())
+                    {
+                        // We have seen this point already, so grab it from our list.
+                        v.points[d] = (*entry).second;
+                    }
+                    else
+                    {
+                        // We haven't seen this point yet, so we need to add it
+                        // to our list.
+                        auto pt = createCellPoint(decalId, mGridDelta);
+                        
+                        // TODO: evaluate the point using the corresponding
+                        // super-voxel.
+                    }
+                    ++d;
+                }
+            };
+
+            auto getEdges = [this](Voxel const& v)
+            {
+                VoxelPoint start, end;
+                int edgeId = 0;
+                std::vector<int> edges;
+
+                for (std::size_t i = 0; i < v.points.size(); ++i)
+                {
+                    start = v.points[i];
+                    end = v.points[(i + 1) % v.points.size()];
+
+                    // All that we care about is the change in sign. If there
+                    // is a change, we know the surface crosses this edge.
+                    if (glm::sign(start.value.w) != glm::sign(end.value.w))
+                    {
+                        edges.push_back(edgeId);
+                    }
+                    edgeId++;
+                }
+
+                return edges;
+            };
+
+            while (!frontier.empty())
+            {
+                // Grab a voxel from the queue.
+                auto top = frontier.front();
+                frontier.pop();
+
+                // Check if we have seen this voxel before.
+                if (seenVoxels.find(BsoidHash32::hash(top.x, top.y)) !=
+                    seenVoxels.end())
+                {
+                    // We have, so do nothing.
+                    continue;
+                }
+                else
+                {
+                    // We haven't seen it before, so add it to our list and
+                    // proceed.
+                    seenVoxels.insert(
+                        std::pair<std::uint32_t, VoxelId>(
+                            BsoidHash32::hash(top.x, top.y), top));
+                }
+
+                // Now fill its values.
+                Voxel v(top);
+                generateVoxel(v);
+
+                // Check how many edges cross the surface.
+                auto edges = getEdges(v);
+                if (edges.empty())
+                {
+                    // There are no crossings, so continue;
+                    continue;
+                }
+
+                // For each edge that crosses the surface, we need to add the 
+                // corresponding voxel to our queue.
+                for (auto& edge : edges)
+                {
+                    // Grab the decal for the corresponding neighbour.
+                    auto decal = EdgeDecals.at(edge);
+
+                    // Now get the corresponding voxel id.
+                    auto neighbourDecal = v.id;
+                    neighbourDecal.x += decal.x;
+                    neighbourDecal.y = decal.y;
+
+                    // Make sure that we don't run off the edge of the grid.
+                    if (!Voxel(neighbourDecal).isValid())
+                    {
+                        continue;
+                    }
+
+                    frontier.push(neighbourDecal);
+                }
+
+                mVoxels.push_back(v);
+            }
         }
 
         void CrossSection::validateVoxels() const
