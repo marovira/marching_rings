@@ -22,9 +22,12 @@ namespace athena
         { }
 
         Bsoid::Bsoid(Bsoid&& b) :
+            mLattice(std::move(b.mLattice)),
             mTree(std::move(b.mTree)),
+            mCrossSectionDelta(b.mCrossSectionDelta),
+            mCrossSections(std::move(b.mCrossSections)),
             mLog(std::move(b.mLog)),
-            mName(std::move(b.mName))
+            mName(b.mName)
         { }
 
         void Bsoid::setModel(tree::BlobTree const& model)
@@ -142,7 +145,32 @@ namespace athena
 
         void Bsoid::constructLattices()
         {
+            atlas::core::Timer<float> global;
+            atlas::core::Timer<float> t;
+            int i = 0;
+            global.start();
+            // This can be done in parallel.
+            for (auto& section : mCrossSections)
+            {
+                t.start();
+                section->constructLattice();
+                auto duration = t.elapsed();
+                mLog << "Generated lattice " << i << "in: " << duration
+                    << " seconds.\n";
+                ++i;
+            }
 
+            auto time = global.elapsed();
+            mLog << "Total lattice generation time: " << time << " seconds\n";
+
+            std::vector<Voxel> voxels;
+            for (auto& section : mCrossSections)
+            {
+                voxels.insert(voxels.end(), section->getVoxels().begin(),
+                    section->getVoxels().end());
+            }
+
+            mLattice.makeLattice(voxels);
         }
 
         Lattice const& Bsoid::getLattice() const
