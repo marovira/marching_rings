@@ -152,6 +152,12 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
+                if (i != 1)
+                {
+                    ++i;
+                    continue;
+                }
+
                 t.start();
                 section->constructLattice();
                 auto duration = t.elapsed();
