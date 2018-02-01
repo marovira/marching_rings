@@ -125,31 +125,28 @@ namespace athena
         void CrossSection::marchVoxelOnSurface(std::vector<Voxel> const& seeds)
         {
             using atlas::math::Point4;
+            using atlas::math::Point;
 
             std::map<std::uint32_t, VoxelPoint> seenPoints;
             std::map<std::uint32_t, VoxelId> seenVoxels;
             std::queue<PointId> frontier;
 
-            // First fill in the values of each of the seeds and insert them.
+            auto evalPoint = [this](Point const& p)
             {
-                for (auto& seed : seeds)
-                {
-                    int i = 0;
-                    for (auto& decal : VoxelDecals)
-                    {
-                        auto decalId = seed.id + decal;
-                        auto hash = BsoidHash32::hash(decalId.x, decalId.y);
-                        auto pt = createCellPoint(decalId, mGridDelta);
+                // We need to figure out which super-voxel this point belongs to.
+                auto v = (p - mMin) / mSvDelta;
+                PointId id;
+                id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
+                id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
 
-                        // TODO: Compute the field value for the point and then
-                        // insert them into our list of seen voxels.
-                    }
+                auto svHash = BsoidHash32::hash(id.x, id.y);
+                auto sv = mSuperVoxels[svHash];
+                auto val = sv.eval(p);
+                auto g = sv.grad(p);
+                return VoxelPoint(p, val, g);
+            };
 
-                    frontier.push(seed.id);
-                }
-            }
-
-            auto generateVoxel = [this, &seenPoints](Voxel& v)
+            auto generateVoxel = [this, &seenPoints, evalPoint](Voxel& v)
             {
                 int d = 0;
                 for (auto& decal : VoxelDecals)
@@ -167,9 +164,11 @@ namespace athena
                         // We haven't seen this point yet, so we need to add it
                         // to our list.
                         auto pt = createCellPoint(decalId, mGridDelta);
-                        
-                        // TODO: evaluate the point using the corresponding
-                        // super-voxel.
+                        auto vp = evalPoint(pt);
+                        auto hash = BsoidHash32::hash(decalId.x, decalId.y);
+                        seenPoints.insert(
+                            std::pair<std::uint32_t, VoxelPoint>(hash, vp));
+                        v.points[d] = vp;
                     }
                     ++d;
                 }
@@ -188,6 +187,7 @@ namespace athena
 
                     // All that we care about is the change in sign. If there
                     // is a change, we know the surface crosses this edge.
+                    // NOTE: This may not work at all.
                     if (glm::sign(start.value.w) != glm::sign(end.value.w))
                     {
                         edges.push_back(edgeId);
@@ -197,6 +197,26 @@ namespace athena
 
                 return edges;
             };
+
+            // First fill in the values of each of the seeds and insert them.
+            {
+                for (auto& seed : seeds)
+                {
+                    int i = 0;
+                    for (auto& decal : VoxelDecals)
+                    {
+                        auto decalId = seed.id + decal;
+                        auto hash = BsoidHash32::hash(decalId.x, decalId.y);
+                        auto pt = createCellPoint(decalId, mGridDelta);
+                        auto vp = evalPoint(pt);
+                        seenPoints.insert(
+                            std::pair<std::uint32_t, VoxelPoint>(hash, vp));
+                    }
+                    i++;
+                    frontier.push(seed.id);
+                }
+            }
+
 
             while (!frontier.empty())
             {
