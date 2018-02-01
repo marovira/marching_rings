@@ -156,6 +156,7 @@ namespace athena
             }
 
             mLatticeVao.bindVertexArray();
+            mLatticeData.bindBuffer();
             mLatticeData.bufferData(
                 gl::size<math::Point>(verts.size()), verts.data(),
                 GL_STATIC_DRAW);
