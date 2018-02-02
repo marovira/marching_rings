@@ -3,6 +3,7 @@
 #include "athena/polygonizer/Tables.hpp"
 
 #include <atlas/core/Float.hpp>
+#include <atlas/core/Log.hpp>
 
 #include <map>
 #include <unordered_map>
@@ -59,12 +60,10 @@ namespace athena
             using atlas::math::Point;
             using atlas::utils::BBox;
 
-            std::uint32_t numSvs = mGridSize / mSvSize;
-
             // Can be done in parallel.
-            for (std::uint32_t x = 0; x < numSvs; ++x)
+            for (std::uint32_t x = 0; x < mSvSize; ++x)
             {
-                for (std::uint32_t y = 0; y < numSvs; ++y)
+                for (std::uint32_t y = 0; y < mSvSize; ++y)
                 {
                     auto pt = createCellPoint(x, y, mSvDelta);
 
@@ -111,7 +110,7 @@ namespace athena
             pt = start;
             // Figure out if there is a way to convert this to vector code.
             pt[mAxisId.x] = start[mAxisId.x] + x * delta[mAxisId.x];
-            pt[mAxisId.y] = start[mAxisId.y] + x * delta[mAxisId.y];
+            pt[mAxisId.y] = start[mAxisId.y] + y * delta[mAxisId.y];
 
             return pt;
         }
@@ -140,7 +139,7 @@ namespace athena
                 id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
 
                 auto svHash = BsoidHash32::hash(id.x, id.y);
-                auto sv = mSuperVoxels[svHash];
+                SuperVoxel sv = mSuperVoxels[svHash];
                 auto val = sv.eval(p);
                 auto g = sv.grad(p);
                 return VoxelPoint(p, val, g);
@@ -184,11 +183,13 @@ namespace athena
                 {
                     start = v.points[i];
                     end = v.points[(i + 1) % v.points.size()];
+                    float val1 = start.value.w - 0.5f;
+                    float val2 = end.value.w - 0.5f;
 
                     // All that we care about is the change in sign. If there
                     // is a change, we know the surface crosses this edge.
                     // NOTE: This may not work at all.
-                    if (glm::sign(start.value.w) != glm::sign(end.value.w))
+                    if (glm::sign(val1) != glm::sign(val2))
                     {
                         edges.push_back(edgeId);
                     }
@@ -197,6 +198,13 @@ namespace athena
 
                 return edges;
             };
+
+            if (seeds.empty())
+            {
+                DEBUG_LOG_V("Cross-section (%f, %f, %f) exiting on empty seeds.",
+                    mNormal.x, mNormal.y, mNormal.z);
+                return;
+            }
 
             // First fill in the values of each of the seeds and insert them.
             {
@@ -262,7 +270,7 @@ namespace athena
                     // Now get the corresponding voxel id.
                     auto neighbourDecal = v.id;
                     neighbourDecal.x += decal.x;
-                    neighbourDecal.y = decal.y;
+                    neighbourDecal.y += decal.y;
 
                     // Make sure that we don't run off the edge of the grid.
                     if (!Voxel(neighbourDecal).isValid())
