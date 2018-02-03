@@ -19,7 +19,7 @@ namespace athena
         {
         public:
             ImplicitField() :
-                mFilter(wyvill)
+                mFilter(global)
             { }
 
             virtual ~ImplicitField() = default;
@@ -27,7 +27,7 @@ namespace athena
             atlas::utils::BBox getBBox() const
             {
                 auto b = box();
-                b.expand(1.0f);
+                //b.expand(1.0f);
                 return b;
             }
 
