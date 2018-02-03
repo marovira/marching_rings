@@ -183,12 +183,11 @@ namespace athena
                 {
                     start = v.points[i];
                     end = v.points[(i + 1) % v.points.size()];
-                    float val1 = start.value.w - 0.5f;
-                    float val2 = end.value.w - 0.5f;
+                    float val1 = start.value.w;
+                    float val2 = end.value.w;
 
                     // All that we care about is the change in sign. If there
                     // is a change, we know the surface crosses this edge.
-                    // NOTE: This may not work at all.
                     if (glm::sign(val1) != glm::sign(val2))
                     {
                         edges.push_back(edgeId);
