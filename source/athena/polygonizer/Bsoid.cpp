@@ -65,7 +65,7 @@ namespace athena
         void Bsoid::setNumCrossSections(std::size_t num, SlicingAxes const& axis)
         {
             auto box = mTree->getTreeBox();
-            auto deltas = (box.pMax - box.pMin) / static_cast<float>(num);
+            auto deltas = (box.pMax - box.pMin) / static_cast<float>(num - 1);
             switch (axis)
             {
             case SlicingAxes::XAxis:
@@ -152,16 +152,10 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
-                if (i != 1)
-                {
-                    ++i;
-                    continue;
-                }
-
                 t.start();
                 section->constructLattice();
                 auto duration = t.elapsed();
-                mLog << "Generated lattice " << i << "in: " << duration
+                mLog << "Generated lattice " << i << " in: " << duration
                     << " seconds.\n";
                 ++i;
             }
