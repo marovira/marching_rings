@@ -12,26 +12,28 @@ namespace athena
 {
     namespace polygonizer
     {
-        struct VoxelPoint
+        struct FieldPoint
         {
-            VoxelPoint() :
+            FieldPoint() :
                 value(0.0f, 0.0f, 0.0f, -1.0f),
                 g(0.0f)
             { }
 
-            VoxelPoint(atlas::math::Point const& p, float v) :
+            FieldPoint(atlas::math::Point const& p, float v) :
                 value(p, v),
                 g(0.0f)
             { }
 
-            VoxelPoint(atlas::math::Point const& p, float v, 
-                atlas::math::Normal const& grad) :
+            FieldPoint(atlas::math::Point const& p, float v, 
+                atlas::math::Normal const& grad, std::uint32_t id) :
                 value(p, v),
-                g(grad)
+                g(grad),
+                svHash(id)
             { }
 
             atlas::math::Point4 value;
             atlas::math::Normal g;
+            std::uint32_t svHash;
         };
 
         constexpr auto invalidUint()
@@ -61,7 +63,7 @@ namespace athena
                     id.y != invalid.y);
             }
 
-            std::array<VoxelPoint, 4> points;
+            std::array<FieldPoint, 4> points;
             VoxelId id;
         };
     }
