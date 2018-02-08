@@ -29,6 +29,7 @@ namespace athena
 
         private:
             void constructLattices();
+            void constructContours();
 
             polygonizer::Bsoid mSoid;
 
