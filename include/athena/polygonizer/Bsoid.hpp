@@ -6,6 +6,7 @@
 #include "Polygonizer.hpp"
 #include "CrossSection.hpp"
 #include "Lattice.hpp"
+#include "Contour.hpp"
 #include "athena/tree/BlobTree.hpp"
 
 #include <sstream>
@@ -36,8 +37,10 @@ namespace athena
                 std::uint32_t gridSize, std::uint32_t svSize);
 
             void constructLattices();
+            void constructContours();
 
             Lattice const& getLattice() const;
+            Contour const& getContour() const;
 
             void setName(std::string const& name);
             std::string getName() const;
@@ -48,7 +51,8 @@ namespace athena
             void saveLattice() const;
 
         private:
-             Lattice mLattice;
+            Lattice mLattice;
+            Contour mContour;
             tree::TreePointer mTree;
             float mCrossSectionDelta;
 

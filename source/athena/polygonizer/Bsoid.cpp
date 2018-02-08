@@ -164,18 +164,54 @@ namespace athena
             mLog << "Total lattice generation time: " << time << " seconds\n";
 
             std::vector<Voxel> voxels;
+            i = 0;
             for (auto& section : mCrossSections)
             {
+                if (i != 0)
+                {
+                    ++i;
+                    continue;
+                }
                 voxels.insert(voxels.end(), section->getVoxels().begin(),
                     section->getVoxels().end());
+                ++i;
             }
 
             mLattice.makeLattice(voxels);
+        }
+        
+        void Bsoid::constructContours()
+        {
+            atlas::core::Timer<float> global;
+            atlas::core::Timer<float> t;
+            int i = 0;
+            global.start();
+
+            // This can be done in parallel. I think...
+            for (auto& section : mCrossSections)
+            {
+                t.start();
+                 section->constructContour();
+                auto duration = t.elapsed();
+                mLog << "Generated contour " << i << " in: " << duration
+                    << " seconds.\n";
+                ++i;
+            }
+
+            auto time = global.elapsed();
+            mLog << "Total contour generation time: " << time << " seconds\n";
+
+            // Something here to create the contour thing.
         }
 
         Lattice const& Bsoid::getLattice() const
         {
             return mLattice;
+        }
+
+        Contour const& Bsoid::getContour() const
+        {
+            return mContour;
         }
 
         void Bsoid::setName(std::string const& name)
