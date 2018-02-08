@@ -104,6 +104,11 @@ namespace athena
                 constructLattices();
             }
 
+            if (ImGui::Button("Construct contours"))
+            {
+                constructContours();
+            }
+
             if (ImGui::Button("Save model"))
             {
 
@@ -171,6 +176,17 @@ namespace athena
             mLatticeIndices.unBindBuffer();
             mLatticeData.unBindBuffer();
             mLatticeVao.unBindVertexArray();
+        }
+
+        void ModelView::constructContours()
+        {
+            // if (!mSoid.getContour().vertices.empty())
+
+            namespace gl = atlas::gl;
+            namespace math = atlas::math;
+
+             mSoid.constructContours();
+
         }
     }
 }
