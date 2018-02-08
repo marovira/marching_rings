@@ -28,8 +28,10 @@ namespace athena
             ~CrossSection() = default;
 
             void constructLattice();
+            void constructContour();
 
             std::vector<Voxel> const& getVoxels() const;
+            std::vector<FieldPoint> const& getContour() const;
 
         private:
             atlas::math::Point createCellPoint(std::uint32_t x, std::uint32_t y,
@@ -38,7 +40,10 @@ namespace athena
                 atlas::math::Point const& delta);
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
 
+            void generateLineSegments();
+
             void validateVoxels() const;
+            void validateContour() const;
 
             atlas::math::Point mGridDelta, mSvDelta, mMin, mMax;
             atlas::math::Normal mNormal;
@@ -49,6 +54,7 @@ namespace athena
             SlicingAxes mAxis;
 
             std::vector<Voxel> mVoxels;
+            std::vector<FieldPoint> mContour;
             std::unordered_map<std::uint32_t, SuperVoxel> mSuperVoxels;
         };
     }
