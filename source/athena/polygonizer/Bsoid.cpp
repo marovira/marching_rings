@@ -1,11 +1,16 @@
 #include "athena/polygonizer/Bsoid.hpp"
 
 #include <atlas/core/Timer.hpp>
+#include <atlas/core/Macros.hpp>
 
 #include <numeric>
 #include <functional>
 #include <unordered_set>
 #include <fstream>
+
+#if defined ATLAS_DEBUG
+#define ATHENA_DEBUG_CONTOUR_NUM 0
+#endif
 
 
 namespace athena
@@ -152,6 +157,14 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
+#if defined(ATLAS_DEBUG)
+                if (i != ATHENA_DEBUG_CONTOUR_NUM)
+                {
+                    ++i;
+                    continue;
+                }
+#endif
+
                 t.start();
                 section->constructLattice();
                 auto duration = t.elapsed();
@@ -167,11 +180,13 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
-                if (i != 0)
+#if defined(ATLAS_DEBUG)
+                if (i != ATHENA_DEBUG_CONTOUR_NUM)
                 {
                     ++i;
                     continue;
                 }
+#endif
                 voxels.insert(voxels.end(), section->getVoxels().begin(),
                     section->getVoxels().end());
                 ++i;
@@ -190,6 +205,14 @@ namespace athena
             // This can be done in parallel. I think...
             for (auto& section : mCrossSections)
             {
+#if defined(ATLAS_DEBUG)
+                if (i != ATHENA_DEBUG_CONTOUR_NUM)
+                {
+                    ++i;
+                    continue;
+                }
+#endif
+
                 t.start();
                  section->constructContour();
                 auto duration = t.elapsed();
