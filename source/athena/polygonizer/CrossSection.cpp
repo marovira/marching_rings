@@ -323,18 +323,17 @@ namespace athena
 
             // Generate the line segments first
             {
-                auto interpolate = [this](FieldPoint const& p1, 
-                    FieldPoint const& p2)
+                auto interpolate = 
+                    [this](FieldPoint const& p1, FieldPoint const& p2)
                 {
-                    auto pt = glm::mix(p1.value.xyz(), p1.value.xyz(),
+                    using atlas::math::Point2;
+
+                    auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
                         (0.0f - p1.value.w) / (p2.value.w - p1.value.w));
 
                     auto hash1 = p1.svHash;
                     auto hash2 = p2.svHash;
                     auto sv = mSuperVoxels[hash1];
-
-                    // This should never happen anyway, but you never know...
-                    //assert(hash1 == hash2);
 
                     auto val = sv.eval(pt);
                     auto grad = sv.grad(pt);
@@ -342,9 +341,10 @@ namespace athena
                     return FieldPoint(pt, val, grad, hash1);
                 };
 
-                auto generatePoint = [&computedPoints, interpolate, this](
-                    PointId const& p1, PointId const& p2, FieldPoint const& vp1,
-                    FieldPoint const& vp2)
+                auto generatePoint = 
+                    [&computedPoints, interpolate, this](PointId const& p1, 
+                        PointId const& p2, FieldPoint const& vp1, 
+                        FieldPoint const& vp2)
                 {
                     auto h1 = BsoidHash32::hash(p1.x, p1.y);
                     auto h2 = BsoidHash32::hash(p2.x, p2.y);
@@ -393,7 +393,7 @@ namespace athena
                             voxel.id + VoxelDecals[0],
                             voxel.id + VoxelDecals[1],
                             voxel.points[0],
-                            voxel.points[0]);
+                            voxel.points[1]);
                     }
 
                     if (EdgeTable[voxelIndex] & 2)
@@ -440,7 +440,8 @@ namespace athena
             {
                 return;
             }
-
+#if 1
+            // Now join the segments together into a single path.
             {
                 struct PointCompare
                 {
@@ -484,17 +485,29 @@ namespace athena
                 for (std::size_t i = 0; i < segments.size(); ++i)
                 {
                     // Save the current point and mark it as used.
-                    mContour.push_back(currentPt);
-                    used[currentIdx.first] = true;
+                    if (!used[currentIdx.first])
+                    {
+                        mContour.push_back(currentPt);
+                        used[currentIdx.first] = true;
+                    }
 
                     // Grab all those keys that have the ending point.
                     auto range = map.equal_range(currentIdx.second);
                     for (auto& it = range.first; it != range.second; ++it)
                     {
+                        // Check the current end point. If it is equal to 
+                        // the point we are in, then we have used it and we 
+                        // have a trivial segment. 
+                        if (currentPt == it->first)
+                        {
+                            used[it->second.first] = true;
+                            continue;
+                        }
                         if (!used[it->second.first])
                         {
                             // If we haven't used this point yet, then select
                             // it to be the next one we visit.
+
                             currentPt = it->first;
                             currentIdx = it->second;
                             break;
@@ -502,6 +515,11 @@ namespace athena
                     }
                 }
             }
+#else
+            {
+
+            }
+#endif
         }
 
         void CrossSection::validateVoxels() const
