@@ -31,6 +31,16 @@ namespace athena
                 svHash(id)
             { }
 
+            bool operator==(FieldPoint const& rhs) const
+            {
+                return rhs.value == value;
+            }
+
+            bool operator!=(FieldPoint const& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
             atlas::math::Point4 value;
             atlas::math::Normal g;
             std::uint32_t svHash;
