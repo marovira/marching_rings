@@ -6,6 +6,7 @@
 #include "Polygonizer.hpp"
 #include "Voxel.hpp"
 #include "SuperVoxel.hpp"
+#include "LineSegment.hpp"
 #include "athena/fields/ImplicitField.hpp"
 #include "athena/tree/BlobTree.hpp"
 
@@ -40,7 +41,8 @@ namespace athena
                 atlas::math::Point const& delta);
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
 
-            void generateLineSegments();
+            std::vector<LineSegment> generateLineSegments();
+            void convertToContour(std::vector<LineSegment> const& segments);
 
             void validateVoxels() const;
             void validateContour() const;

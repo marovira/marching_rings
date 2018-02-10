@@ -102,8 +102,10 @@ namespace athena
 
         void CrossSection::constructContour()
         {
-            generateLineSegments();
-
+            auto segments = generateLineSegments();
+            convertToContour(segments);
+            DEBUG_LOG_V("Generated %d vertices for contour.",
+                mContour.size());
 #if defined ATLAS_DEBUG
             // validateContour();
 #endif
@@ -302,225 +304,208 @@ namespace athena
             }
         }
 
-        void CrossSection::generateLineSegments()
+        std::vector<LineSegment> CrossSection::generateLineSegments()
         {
             using atlas::math::Point;
             using atlas::math::Normal;
-            using EdgeId = PointId;
 
-            struct LineSegment
-            {
-                LineSegment(FieldPoint const& s, FieldPoint const& e) :
-                    start(s),
-                    end(e)
-                { }
-
-                FieldPoint start, end;
-            };
-
-            std::map<std::uint64_t, FieldPoint> computedPoints;
+            // We may need to move this to the scope of the segments.
+            std::map<std::uint64_t, LinePoint> computedPoints;
             std::vector<LineSegment> segments;
 
-            // Generate the line segments first
+            auto interpolate = [this](FieldPoint const& p1, FieldPoint const& p2)
             {
-                auto interpolate = 
-                    [this](FieldPoint const& p1, FieldPoint const& p2)
+                using atlas::math::Point2;
+
+                auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
+                    (0.0f - p1.value.w) / (p2.value.w - p1.value.w));
+                // Note that for now we assume that this is irrelevant. It may
+                // so happen that there is a case when this is no longer true.
+                auto hash = p1.svHash;
+                auto sv = mSuperVoxels[hash];
+                auto val = sv.eval(pt);
+                auto grad = sv.grad(pt);
+                return FieldPoint(pt, val, grad, hash);
+            };
+
+            auto generatePoint =
+                [&computedPoints, interpolate, this](PointId const& p1,
+                    PointId const& p2, FieldPoint const& fp1,
+                    FieldPoint const& fp2)
+            {
+                auto h1 = BsoidHash32::hash(p1.x, p1.y);
+                auto h2 = BsoidHash32::hash(p2.x, p2.y);
+                
+                // We need to keep in mind that the hashes are order sensitive,
+                // which means that a single edge has two possible hashes: 
+                // (h1, h2) and (h2, h1), so we have to check both.
+                auto edgeHash1 = BsoidHash64::hash(h1, h2);
+                auto edgeHash2 = BsoidHash64::hash(h2, h1);
+
+                // Now look up both hashes.
+                auto entry1 = computedPoints.find(edgeHash1);
+                auto entry2 = computedPoints.find(edgeHash2);
+                
+                if (entry1 != computedPoints.end() || 
+                    entry2 != computedPoints.end())
                 {
-                    using atlas::math::Point2;
-
-                    auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
-                        (0.0f - p1.value.w) / (p2.value.w - p1.value.w));
-
-                    auto hash1 = p1.svHash;
-                    auto hash2 = p2.svHash;
-                    auto sv = mSuperVoxels[hash1];
-
-                    auto val = sv.eval(pt);
-                    auto grad = sv.grad(pt);
-
-                    return FieldPoint(pt, val, grad, hash1);
-                };
-
-                auto generatePoint = 
-                    [&computedPoints, interpolate, this](PointId const& p1, 
-                        PointId const& p2, FieldPoint const& vp1, 
-                        FieldPoint const& vp2)
-                {
-                    auto h1 = BsoidHash32::hash(p1.x, p1.y);
-                    auto h2 = BsoidHash32::hash(p2.x, p2.y);
-
-                    // Now check if we have seen this edge before.
-                    auto entry = computedPoints.find(BsoidHash64::hash(h1, h2));
-                    if (entry != computedPoints.end())
+                    if (entry1 != computedPoints.end())
                     {
-                        return (*entry).second;
-                    }
-                    else
-                    {
-                        auto pt = interpolate(vp1, vp2);
-                        auto hash = BsoidHash64::hash(h1, h2);
-                        computedPoints.insert(
-                            std::pair<std::uint64_t, FieldPoint>(hash, pt));
-                        return pt;
-                    }
-                };
-
-                // Iterate over the set of voxels.
-                for (auto& voxel : mVoxels)
-                {
-                    // First compute the cell index for our voxel.
-                    std::uint32_t voxelIndex = 0;
-                    std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
-                    for (std::size_t i = 0; i < 4; ++i)
-                    {
-                        if (atlas::core::leq(voxel.points[i].value.w, 0.0f))
-                        //if (voxel.points[i].value.w < 0.0f)
-                        {
-                            voxelIndex |= coeffs[i];
-                        }
+                        return (*entry1).second;
                     }
 
-                    // This should never happen, so it's a sanity check.
-                    assert(EdgeTable[voxelIndex] != 0);
-
-                    // Now we proceed with the marchin squares cases (may change
-                    // these).
-                    std::vector<FieldPoint> vertList(4);
-                    if (EdgeTable[voxelIndex] & 1)
-                    {
-                        // Edge 0.
-                        vertList[0] = generatePoint(
-                            voxel.id + VoxelDecals[0],
-                            voxel.id + VoxelDecals[1],
-                            voxel.points[0],
-                            voxel.points[1]);
-                    }
-
-                    if (EdgeTable[voxelIndex] & 2)
-                    {
-                        // Edge 1.
-                        vertList[1] = generatePoint(
-                            voxel.id + VoxelDecals[1],
-                            voxel.id + VoxelDecals[2],
-                            voxel.points[1],
-                            voxel.points[2]);
-                    }
-
-                    if (EdgeTable[voxelIndex] & 4)
-                    {
-                        // Edge 2.
-                        vertList[2] = generatePoint(
-                            voxel.id + VoxelDecals[2],
-                            voxel.id + VoxelDecals[3],
-                            voxel.points[2],
-                            voxel.points[3]);
-                    }
-
-                    if (EdgeTable[voxelIndex] & 8)
-                    {
-                        // Edge 3.
-                        vertList[3] = generatePoint(
-                            voxel.id + VoxelDecals[3],
-                            voxel.id + VoxelDecals[0],
-                            voxel.points[3],
-                            voxel.points[0]);
-                    }
-
-                    for (int i = 0; LineTable[voxelIndex][i] != -1; i += 2)
-                    {
-                        auto start = vertList[LineTable[voxelIndex][i + 0]];
-                        auto end = vertList[LineTable[voxelIndex][i + 1]];
-                        segments.emplace_back(start, end);
-                    }
+                    return (*entry2).second;
                 }
-            }
-
-
-            if (segments.empty())
-            {
-                return;
-            }
-#if 1
-            // Now join the segments together into a single path.
-            {
-                struct PointCompare
+                else
                 {
-                    bool operator()(FieldPoint const& lhs,
-                        FieldPoint const& rhs) const
-                    {
-                        if (lhs.value.x != rhs.value.x)
-                        {
-                            return lhs.value.x < rhs.value.x;
-                        }
-
-                        if (lhs.value.y != rhs.value.y)
-                        {
-                            return lhs.value.y < rhs.value.y;
-                        }
-
-                        return lhs.value.z < rhs.value.z;
-                    }
-                };
-
-                // The idea here is to use a map that contains all of the
-                // starting points of all the line segments. That way we can
-                // easily "walk" through them by searching for the line segment
-                // that starts where the current one ends. Using a map reduces
-                // the search to O(n log(n)).
-                // The starting points serve as keys, while the values stored
-                // correspond to the index of that segment and the end point.
-                std::multimap<FieldPoint, std::pair<std::size_t, FieldPoint>,
-                    PointCompare> map;
-                for (std::size_t i = 0; i < segments.size(); ++i)
-                {
-                    map.insert(std::make_pair(segments[i].start,
-                        std::make_pair(i, segments[i].end)));
+                    // We haven't seent this point, so it's important that
+                    // we enter the point twice!
+                    auto pt = interpolate(fp1, fp2);
+                    LinePoint p(pt, edgeHash1);
+                    computedPoints.insert(
+                        std::pair<std::uint64_t, LinePoint>(edgeHash1, p));
+                    return LinePoint(pt, edgeHash1);
                 }
 
-                // Grab the first point to use as the start of the contour.
-                FieldPoint currentPt = map.begin()->first;
-                auto currentIdx = map.begin()->second;
+            };
 
-                std::vector<bool> used(segments.size(), false);
-                for (std::size_t i = 0; i < segments.size(); ++i)
+            // Iterate over the set of voxels.
+            int k = 0;
+            for (auto& voxel : mVoxels)
+            {
+                // First compute the cell index for our voxel.
+                std::uint32_t voxelIndex = 0;
+                std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
+                for (std::size_t i = 0; i < 4; ++i)
                 {
-                    // Save the current point and mark it as used.
-                    if (!used[currentIdx.first])
+                    if (atlas::core::leq(voxel.points[i].value.w, 0.0f))
                     {
-                        mContour.push_back(currentPt);
-                        used[currentIdx.first] = true;
-                    }
-
-                    // Grab all those keys that have the ending point.
-                    auto range = map.equal_range(currentIdx.second);
-                    for (auto& it = range.first; it != range.second; ++it)
-                    {
-                        // Check the current end point. If it is equal to 
-                        // the point we are in, then we have used it and we 
-                        // have a trivial segment. 
-                        if (currentPt == it->first)
-                        {
-                            used[it->second.first] = true;
-                            continue;
-                        }
-                        if (!used[it->second.first])
-                        {
-                            // If we haven't used this point yet, then select
-                            // it to be the next one we visit.
-
-                            currentPt = it->first;
-                            currentIdx = it->second;
-                            break;
-                        }
+                        voxelIndex |= coeffs[i];
                     }
                 }
-            }
-#else
-            {
 
+                assert(EdgeTable[voxelIndex] != 0);
+
+                std::vector<LinePoint> vertList(4);
+                if (EdgeTable[voxelIndex] & 1)
+                {
+                    // Edge 0.
+                    vertList[0] = generatePoint(
+                        voxel.id + VoxelDecals[0],
+                        voxel.id + VoxelDecals[1],
+                        voxel.points[0],
+                        voxel.points[1]);
+                }
+
+                if (EdgeTable[voxelIndex] & 2)
+                {
+                    // Edge 1.
+                    vertList[1] = generatePoint(
+                        voxel.id + VoxelDecals[1],
+                        voxel.id + VoxelDecals[2],
+                        voxel.points[1],
+                        voxel.points[2]);
+                }
+
+
+                if (EdgeTable[voxelIndex] & 4)
+                {
+                    // Edge 2.
+                    vertList[2] = generatePoint(
+                        voxel.id + VoxelDecals[2],
+                        voxel.id + VoxelDecals[3],
+                        voxel.points[2],
+                        voxel.points[3]);
+                }
+
+                if (EdgeTable[voxelIndex] & 8)
+                {
+                    // Edge 3.
+                    vertList[3] = generatePoint(
+                        voxel.id + VoxelDecals[3],
+                        voxel.id + VoxelDecals[0],
+                        voxel.points[3],
+                        voxel.points[0]);
+                }
+
+                for (int i = 0; LineTable[voxelIndex][i] != -1; i += 2)
+                {
+                    auto start = vertList[LineTable[voxelIndex][i + 0]];
+                    auto end   = vertList[LineTable[voxelIndex][i + 1]];
+                    segments.emplace_back(start, end);
+                    //DEBUG_LOG_V("(%.2f, %.2f, %.2f, %llu) -> (%.2f, %.2f, %.2f, %llu)",
+                    //    start.point.value.x,
+                    //    start.point.value.y,
+                    //    start.point.value.z,
+                    //    start.edge,
+                    //    end.point.value.x,
+                    //    end.point.value.y,
+                    //    end.point.value.z,
+                    //    end.edge);
+                }
+                ++k;
             }
-#endif
-        }
+
+            return segments;
+       }
+
+       void CrossSection::convertToContour(
+           std::vector<LineSegment> const& segments)
+       {
+           if (segments.empty())
+           {
+               return;
+           }
+
+           std::unordered_map<std::uint64_t, FieldPoint> vertices;
+           std::unordered_map<std::uint64_t, 
+               std::pair<std::size_t, std::uint64_t>> contourMap;
+
+           for (std::size_t i = 0; i < segments.size(); ++i)
+           {
+               auto start = segments[i].start;
+               auto end = segments[i].end;
+
+               vertices.insert({ start.edge, start.point });
+               vertices.insert({ end.edge, end.point });
+
+               contourMap.insert({ start.edge, {i, end.edge} });
+           }
+
+           auto currentPt = contourMap.begin()->first;
+           auto currentIdx = contourMap.begin()->second;
+           std::vector<bool> used(segments.size(), false);
+           bool found = false;
+           for (std::size_t i = 0; i < segments.size(); ++i)
+           {
+               if (!used[currentIdx.first])
+               {
+                   mContour.push_back(vertices[currentPt]);
+                   used[currentIdx.first] = true;
+               }
+
+               // Grab the next entry.
+               auto range = contourMap.equal_range(currentIdx.second);
+               for (auto& it = range.first; it != range.second; ++it)
+               {
+                   // Check if the current end point is equal to the point
+                   // we are in. If it is, then we have a degenerate segment.
+                   if (currentPt == it->first)
+                   {
+                       used[it->second.first] = true;
+                       continue;
+                   }
+                   if (!used[it->second.first])
+                   {
+                       // We haven't used this point yet, then select it to be
+                       // the next one we visit.
+                       currentPt = it->first;
+                       currentIdx = it->second;
+                       break;
+                   }
+               }
+           }
+       }
 
         void CrossSection::validateVoxels() const
         {
