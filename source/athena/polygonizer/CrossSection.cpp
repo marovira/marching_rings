@@ -384,6 +384,14 @@ namespace athena
                     }
                 }
 
+                // If a voxel has at least one tangent point and the rest are
+                // inside the surface, then just skip it.
+                if (voxelIndex == 15)
+                {
+                    continue;
+                }
+
+                // Safety check.
                 assert(EdgeTable[voxelIndex] != 0);
 
                 std::vector<LinePoint> vertList(4);
@@ -490,7 +498,12 @@ namespace athena
                {
                    // Check if the current end point is equal to the point
                    // we are in. If it is, then we have a degenerate segment.
-                   if (currentPt == it->first)
+                   // Alternatively, we can also check for distance.
+                   auto currentVertex = vertices[currentPt];
+                   auto nextVertex = vertices[it->first];
+                   auto dist = glm::distance2(currentVertex.value, 
+                       nextVertex.value);
+                   if (currentPt == it->first || atlas::core::isZero(dist))
                    {
                        used[it->second.first] = true;
                        continue;
