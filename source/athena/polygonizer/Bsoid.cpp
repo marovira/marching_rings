@@ -9,7 +9,8 @@
 #include <fstream>
 
 #if defined ATLAS_DEBUG
-#define ATHENA_DEBUG_CONTOUR_NUM 0
+#define ATHENA_DEBUG_CONTOUR 1
+#define ATHENA_DEBUG_CONTOUR_NUM 2
 #endif
 
 
@@ -157,7 +158,7 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG)
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
                 if (i != ATHENA_DEBUG_CONTOUR_NUM)
                 {
                     ++i;
@@ -180,7 +181,7 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG)
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
                 if (i != ATHENA_DEBUG_CONTOUR_NUM)
                 {
                     ++i;
@@ -205,7 +206,7 @@ namespace athena
             // This can be done in parallel. I think...
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG)
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
                 if (i != ATHENA_DEBUG_CONTOUR_NUM)
                 {
                     ++i;
