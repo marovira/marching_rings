@@ -32,6 +32,28 @@ athena::polygonizer::Bsoid makeSphere()
     return soid;
 }
 
+athena::polygonizer::Bsoid makePeanut()
+{
+    // Polygonizer using.
+    using atlas::math::Point;
+    using athena::fields::ImplicitFieldPtr;
+    using athena::fields::Sphere;
+    using athena::tree::BlobTree;
+    using athena::polygonizer::Bsoid;
+    using athena::polygonizer::SlicingAxes;
+
+    ImplicitFieldPtr sphere1 = std::make_shared<Sphere>(1.0f, Point(0.5f, 0, 0));
+    ImplicitFieldPtr sphere2 = std::make_shared<Sphere>(1.0f, Point(-0.5f, 0, 0));
+    BlobTree tree;
+    tree.inserFields({ sphere1, sphere2 });
+    tree.insertNodeTree({ {-1}, {-1} });
+
+    Bsoid soid(tree, "peanut");
+    soid.setNumCrossSections(8, SlicingAxes::XAxis);
+    soid.makeCrossSections(SlicingAxes::XAxis, 8, 4);
+    return soid;
+}
+
 
 
 #if (ATHENA_USE_GUI)
@@ -46,6 +68,7 @@ int main()
 
     std::vector<athena::polygonizer::Bsoid> models;
     models.emplace_back(makeSphere());
+    models.emplace_back(makePeanut());
 
     atlas::gl::setGLErrorSeverity(ATLAS_GL_ERROR_SEVERITY_HIGH |
         ATLAS_GL_ERROR_SEVERITY_MEDIUM);
