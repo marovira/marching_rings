@@ -87,6 +87,7 @@ namespace athena
             }
 
             std::vector<fields::ImplicitFieldPtr> ret;
+            ret.push_back(mField);
             for (auto& idx : overlaps)
             {
                 auto v = mChildren[idx]->visit(cell);
