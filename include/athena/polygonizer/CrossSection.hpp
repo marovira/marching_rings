@@ -32,7 +32,7 @@ namespace athena
             void constructContour();
 
             std::vector<Voxel> const& getVoxels() const;
-            std::vector<FieldPoint> const& getContour() const;
+            std::vector<std::vector<FieldPoint>> const& getContour() const;
 
         private:
             atlas::math::Point createCellPoint(std::uint32_t x, std::uint32_t y,
@@ -56,7 +56,7 @@ namespace athena
             SlicingAxes mAxis;
 
             std::vector<Voxel> mVoxels;
-            std::vector<FieldPoint> mContour;
+            std::vector<std::vector<FieldPoint>> mContours;
             std::unordered_map<std::uint32_t, SuperVoxel> mSuperVoxels;
         };
     }

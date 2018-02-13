@@ -105,7 +105,7 @@ namespace athena
             auto segments = generateLineSegments();
             convertToContour(segments);
             DEBUG_LOG_V("Generated %d vertices for contour.",
-                mContour.size());
+                mContours.size());
 #if defined ATLAS_DEBUG
             // validateContour();
 #endif
@@ -116,9 +116,10 @@ namespace athena
             return mVoxels;
         }
 
-        std::vector<FieldPoint> const& CrossSection::getContour() const
+        std::vector<std::vector<FieldPoint>> const& 
+            CrossSection::getContour() const
         {
-            return mContour;
+            return mContours;
         }
 
         atlas::math::Point CrossSection::createCellPoint(std::uint32_t x,
@@ -483,12 +484,13 @@ namespace athena
            auto currentPt = contourMap.begin()->first;
            auto currentIdx = contourMap.begin()->second;
            std::vector<bool> used(segments.size(), false);
-           bool found = false;
+           auto startPt = currentPt;
+           std::vector<FieldPoint> contour;
            for (std::size_t i = 0; i < segments.size(); ++i)
            {
                if (!used[currentIdx.first])
                {
-                   mContour.push_back(vertices[currentPt]);
+                   contour.push_back(vertices[currentPt]);
                    used[currentIdx.first] = true;
                }
 
@@ -508,6 +510,14 @@ namespace athena
                        used[it->second.first] = true;
                        continue;
                    }
+
+                   // Check if there is more than one segment.
+                   if (it->first == startPt && i != (segments.size() - 1))
+                   {
+                       // Something happens here.
+                       DEBUG_LOG("Found end of contour.");
+                   }
+
                    if (!used[it->second.first])
                    {
                        // We haven't used this point yet, then select it to be
@@ -517,6 +527,8 @@ namespace athena
                        break;
                    }
                }
+
+               mContours.push_back(contour);
            }
        }
 
@@ -554,12 +566,17 @@ namespace athena
             };
 
             std::unordered_set<FieldPoint, PointHasher, PointCompare> uniques;
-            for (auto& pt : mContour)
+            std::size_t size = 0;
+            for (auto& contour : mContours)
             {
-                uniques.insert(pt);
+                for (auto& pt : contour)
+                {
+                    uniques.insert(pt);
+                    ++size;
+                }
             }
 
-            assert(uniques.size() == mContour.size());
+            assert(uniques.size() == size);
         }
     }
 }
