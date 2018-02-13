@@ -2,9 +2,12 @@
 
 #include <atlas/gl/GL.hpp>
 #include <atlas/utils/GUI.hpp>
+#include <atlas/core/STB.hpp>
+#include <atlas/core/Log.hpp>
 
 #include <cstdarg>
 #include <algorithm>
+#include <fstream>
 
 namespace gl = atlas::gl;
 namespace math = atlas::math;
@@ -60,6 +63,11 @@ namespace athena
                 mCamera.resetCamera();
             }
 
+            if (ImGui::Button("Take snapshot"))
+            {
+                takeSnapshot(mViews[mCurrentView].getModelName());
+            }
+
             // Model select.
             std::vector<std::string> strNames;
             for (auto& view : mViews)
@@ -86,6 +94,44 @@ namespace athena
 
             // Now render the view.
             mViews[mCurrentView].renderGeometry();
+        }
+
+        void ModelVisualizer::takeSnapshot(std::string const& name)
+        {
+            // Determine what the name of the snapshot image will be.
+            int num = 0;
+            std::string filename = name + "_image_";
+            while (true)
+            {
+                std::ifstream file(name + std::to_string(num) + ".png");
+                if (!file)
+                {
+                    break;
+                }
+                num++;
+            }
+
+            filename = filename + std::to_string(num) + ".png";
+
+            // We essentially render the entire scene again.
+            {
+                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                mViews[mCurrentView].renderGeometry();
+            }
+
+            int width = static_cast<int>(mWidth);
+            int height = static_cast<int>(mHeight);
+
+            unsigned char* buffer = new unsigned char[width * height * 3];
+            glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer);
+            unsigned char* lastRow = buffer + (width * 3 * (height - 1));
+            if (!stbi_write_png(filename.c_str(), width, height, 3, lastRow,
+                -3 * width))
+            {
+                ERROR_LOG_V("Could not write image to %s", filename.c_str());
+            }
         }
     }
 }

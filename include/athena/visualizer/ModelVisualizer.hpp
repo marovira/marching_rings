@@ -19,6 +19,7 @@ namespace athena
             void renderScene() override;
 
         private:
+            void takeSnapshot(std::string const& name);
             std::vector<ModelView> mViews;
             int mCurrentView;
         };
