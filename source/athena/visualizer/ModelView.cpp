@@ -122,7 +122,7 @@ namespace athena
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Text("Log");
             ImGui::Separator();
-            ImGui::BeginChild("Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()),
+            ImGui::BeginChild("Log", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()),
                 false, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
             ImGui::TextWrapped(mSoid.getLog().c_str());
             ImGui::EndChild();
