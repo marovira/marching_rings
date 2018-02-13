@@ -46,7 +46,7 @@ athena::polygonizer::Bsoid makePeanut()
     ImplicitFieldPtr sphere2 = std::make_shared<Sphere>(1.0f, Point(-0.5f, 0, 0));
     BlobTree tree;
     tree.inserFields({ sphere1, sphere2 });
-    tree.insertNodeTree({ {-1}, {-1} });
+    tree.insertNodeTree({ {-1}, {0} });
 
     Bsoid soid(tree, "peanut");
     soid.setNumCrossSections(8, SlicingAxes::XAxis);
