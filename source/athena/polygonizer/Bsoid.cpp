@@ -9,7 +9,7 @@
 #include <fstream>
 
 #if defined ATLAS_DEBUG
-#define ATHENA_DEBUG_CONTOUR 1
+#define ATHENA_DEBUG_CONTOUR 0
 #define ATHENA_DEBUG_CONTOUR_NUM 2
 #endif
 
@@ -226,6 +226,23 @@ namespace athena
             mLog << "Total contour generation time: " << time << " seconds\n";
 
             // Something here to create the contour thing.
+            std::vector<std::vector<FieldPoint>> contours;
+            i = 0;
+            for (auto& section : mCrossSections)
+            {
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
+                if (i != ATHENA_DEBUG_CONTOUR_NUM)
+                {
+                    ++i;
+                    continue;
+                }
+#endif
+                contours.insert(contours.end(), section->getContour().begin(),
+                    section->getContour().end());
+                ++i;
+            }
+
+            mContour.makeContour(contours);
         }
 
         Lattice const& Bsoid::getLattice() const
