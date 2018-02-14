@@ -104,8 +104,6 @@ namespace athena
         {
             auto segments = generateLineSegments();
             convertToContour(segments);
-            DEBUG_LOG_V("Generated %d vertices for contour.",
-                mContours.size());
 #if defined ATLAS_DEBUG
             // validateContour();
 #endif
@@ -151,13 +149,24 @@ namespace athena
             std::map<std::uint32_t, VoxelId> seenVoxels;
             std::queue<PointId> frontier;
 
-            auto evalPoint = [this](Point const& p)
+            auto toSuperVoxel = [this](Point const& p)
             {
-                // We need to figure out which super-voxel this point belongs to.
                 auto v = (p - mMin) / mSvDelta;
-                PointId id;
+                Point id;
                 id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
                 id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
+
+                // Check if either of the coordinates of the id are beyond
+                // the edge of the grid.
+                id.x = (id.x < mSvSize) ? id.x : id.x - 1;
+                id.y = (id.y < mSvSize) ? id.y : id.y - 1;
+                return id;
+            };
+
+            auto evalPoint = [this, toSuperVoxel](Point const& p)
+            {
+                // We need to figure out which super-voxel this point belongs to.
+                auto id = toSuperVoxel(p);
 
                 auto svHash = BsoidHash32::hash(id.x, id.y);
                 SuperVoxel sv = mSuperVoxels[svHash];
