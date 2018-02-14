@@ -10,7 +10,7 @@
 
 #if defined ATLAS_DEBUG
 #define ATHENA_DEBUG_CONTOUR 0
-#define ATHENA_DEBUG_CONTOUR_NUM 2
+#define ATHENA_DEBUG_CONTOUR_NUM 1
 #endif
 
 
@@ -110,22 +110,26 @@ namespace athena
             // Initialize the points that frame the first plane.
             Point min, max;
             min = box.pMin;
+            float maxAxis = 0.0f;
             switch (axis)
             {
             case SlicingAxes::XAxis:
                 max = Point(box.pMin.x, box.pMax.yz());
+                maxAxis = box.pMax.x;
                 break;
 
             case SlicingAxes::YAxis:
                 max = Point(box.pMax.x, box.pMin.y, box.pMax.z);
+                maxAxis = box.pMax.y;
                 break;
 
             case SlicingAxes::ZAxis:
                 max = Point(box.pMax.xy(), box.pMin.z);
+                maxAxis = box.pMax.z;
                 break;
             }
 
-            for (std::size_t i = 0; i < mCrossSections.size(); ++i)
+            for (std::size_t i = 0; i < mCrossSections.size() - 1; ++i)
             {
                 mCrossSections[i] = std::make_unique<CrossSection>(
                     axis, min, max, gridSize, svSize, mTree.get());
@@ -147,6 +151,29 @@ namespace athena
                     max.z += mCrossSectionDelta;
                 }
             }
+
+            // Make sure that the final plane is always at the end of the box.
+            switch (axis)
+            {
+            case SlicingAxes::XAxis:
+                min.x = maxAxis;
+                max.x = maxAxis;
+                break;
+
+            case SlicingAxes::YAxis:
+                min.y = maxAxis;
+                max.y = maxAxis;
+                break;
+
+            case SlicingAxes::ZAxis:
+                min.z = maxAxis;
+                max.z = maxAxis;
+                break;
+            }
+
+            mCrossSections[mCrossSections.size() - 1] =
+                std::make_unique<CrossSection>(axis, min, max, gridSize, svSize,
+                    mTree.get());
         }
 
         void Bsoid::constructLattices()
