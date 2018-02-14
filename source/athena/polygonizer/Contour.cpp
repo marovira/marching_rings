@@ -20,12 +20,12 @@ namespace athena
                     ++numVerts;
                 }
 
-                for (std::uint32_t i = 0; i < numVerts; ++i)
+                for (std::uint32_t i = 0; i < contour.size(); ++i)
                 {
-                    indices.push_back(start + i + 0);
-                    indices.push_back((start + i + 1) % numVerts);
+                    indices.push_back(start + (i + 0));
+                    indices.push_back(start + ((i + 1) % contour.size()));
                 }
-                start = numVerts;
+                start += numVerts;
                 numVerts = 0;
             }
         }
