@@ -525,6 +525,7 @@ namespace athena
                    {
                        // Something happens here.
                        DEBUG_LOG("Found end of contour.");
+                       mContours.push_back(contour);
                    }
 
                    if (!used[it->second.first])
@@ -536,9 +537,9 @@ namespace athena
                        break;
                    }
                }
-
-               mContours.push_back(contour);
            }
+
+           mContours.push_back(contour);
        }
 
         void CrossSection::validateVoxels() const
