@@ -105,7 +105,7 @@ namespace athena
             auto segments = generateLineSegments();
             convertToContour(segments);
 #if defined ATLAS_DEBUG
-            // validateContour();
+             validateContour();
 #endif
         }
 
@@ -587,6 +587,7 @@ namespace athena
             }
 
             assert(uniques.size() == size);
+            DEBUG_LOG("Contour validation succeeded.");
         }
     }
 }
