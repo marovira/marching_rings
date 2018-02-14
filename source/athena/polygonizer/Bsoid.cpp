@@ -9,8 +9,18 @@
 #include <fstream>
 
 #if defined ATLAS_DEBUG
-#define ATHENA_DEBUG_CONTOUR 0
-#define ATHENA_DEBUG_CONTOUR_NUM 1
+#define ATHENA_DEBUG_CONTOURS 0
+
+#define ATHENA_DEBUG_CONTOUR_NUM 3
+#define ATHENA_DEBUG_CONTOUR_START 0
+#define ATHENA_DEBUG_CONTOUR_END 3
+
+#define ATHENA_DEBUG_CONTOUR_UNTIL(i) \
+if (i >= ATHENA_DEBUG_CONTOUR_NUM) { ++i; continue; }
+#define ATHENA_DEBUG_SPECIFIC_CONTOUR(i) \
+if (i != ATHENA_DEBUG_CONTOUR_NUM) { ++i; continue; }
+#define ATHENA_DEBUG_CONTOUR_RANGE(i) \
+if (i < ATHENA_DEBUG_CONTOUR_START || i > ATHENA_DEBUG_CONTOUR_END) { ++i; continue; }
 #endif
 
 
@@ -185,12 +195,8 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
-                if (i != ATHENA_DEBUG_CONTOUR_NUM)
-                {
-                    ++i;
-                    continue;
-                }
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
+                ATHENA_DEBUG_CONTOUR_UNTIL(i)
 #endif
 
                 t.start();
@@ -208,12 +214,8 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
-                if (i != ATHENA_DEBUG_CONTOUR_NUM)
-                {
-                    ++i;
-                    continue;
-                }
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
+                ATHENA_DEBUG_CONTOUR_UNTIL(i)
 #endif
                 voxels.insert(voxels.end(), section->getVoxels().begin(),
                     section->getVoxels().end());
@@ -233,12 +235,8 @@ namespace athena
             // This can be done in parallel. I think...
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
-                if (i != ATHENA_DEBUG_CONTOUR_NUM)
-                {
-                    ++i;
-                    continue;
-                }
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
+                ATHENA_DEBUG_CONTOUR_UNTIL(i)
 #endif
 
                 t.start();
@@ -257,12 +255,8 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOUR
-                if (i != ATHENA_DEBUG_CONTOUR_NUM)
-                {
-                    ++i;
-                    continue;
-                }
+#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
+                ATHENA_DEBUG_CONTOUR_UNTIL(i)
 #endif
                 contours.insert(contours.end(), section->getContour().begin(),
                     section->getContour().end());
