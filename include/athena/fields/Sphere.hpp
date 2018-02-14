@@ -57,7 +57,6 @@ namespace athena
                     }
                 }
 
-                assert(eval(seed) == 0.0f);
                 return { seed };
             }
 
