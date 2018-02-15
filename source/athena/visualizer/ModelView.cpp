@@ -157,6 +157,11 @@ namespace athena
                 constructContours();
             }
 
+            if (ImGui::Button("Construct Mesh"))
+            {
+                constructMesh();
+            }
+
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Text("Visualization Options");
             ImGui::Separator();
@@ -232,34 +237,68 @@ namespace athena
             namespace gl = atlas::gl;
             namespace math = atlas::math;
 
-             mSoid.constructContours();
+            mSoid.constructContours();
 
-             auto verts = mSoid.getContour().vertices;
-             auto idx = mSoid.getContour().indices;
-             mContourNumIndices = idx.size();
-             mContourNumVertices = verts.size();
+            auto verts = mSoid.getContour().vertices;
+            auto idx = mSoid.getContour().indices;
+            mContourNumIndices = idx.size();
+            mContourNumVertices = verts.size();
 
-             if (mContourNumIndices == 0)
-             {
-                 return;
-             }
+            if (mContourNumIndices == 0)
+            {
+             return;
+            }
 
-             mContourVao.bindVertexArray();
-             mContourData.bindBuffer();
-             mContourData.bufferData(
-                 gl::size<math::Point>(verts.size()), verts.data(),
-                 GL_STATIC_DRAW);
-             mContourData.vertexAttribPointer(VERTICES_LAYOUT_LOCATION, 3,
-                 GL_FLOAT, GL_FALSE, 0, gl::bufferOffset<float>(0));
-             mContourVao.enableVertexAttribArray(VERTICES_LAYOUT_LOCATION);
+            mContourVao.bindVertexArray();
+            mContourData.bindBuffer();
+            mContourData.bufferData(
+             gl::size<math::Point>(verts.size()), verts.data(),
+             GL_STATIC_DRAW);
+            mContourData.vertexAttribPointer(VERTICES_LAYOUT_LOCATION, 3,
+             GL_FLOAT, GL_FALSE, 0, gl::bufferOffset<float>(0));
+            mContourVao.enableVertexAttribArray(VERTICES_LAYOUT_LOCATION);
 
-             mContourIndices.bindBuffer();
-             mContourIndices.bufferData(
-                 gl::size<GLuint>(idx.size()), idx.data(), GL_STATIC_DRAW);
+            mContourIndices.bindBuffer();
+            mContourIndices.bufferData(
+             gl::size<GLuint>(idx.size()), idx.data(), GL_STATIC_DRAW);
 
-             mContourIndices.unBindBuffer();
-             mContourData.unBindBuffer();
-             mContourVao.unBindVertexArray();
+            mContourIndices.unBindBuffer();
+            mContourData.unBindBuffer();
+            mContourVao.unBindVertexArray();
+        }
+
+        void ModelView::constructMesh()
+        {
+            // Some condition here.
+            namespace gl = atlas::gl;
+            namespace math = atlas::math;
+
+            mSoid.constructMesh();
+
+            // Update the contour buffers.
+            auto verts = mSoid.getContour().vertices;
+            auto idx = mSoid.getContour().indices;
+            mContourNumIndices = idx.size();
+            mContourNumVertices = verts.size();
+
+            if (mContourNumIndices == 0)
+            {
+             return;
+            }
+
+            mContourVao.bindVertexArray();
+            mContourData.bindBuffer();
+            mContourData.bufferData(
+             gl::size<math::Point>(verts.size()), verts.data(),
+             GL_STATIC_DRAW);
+
+            mContourIndices.bindBuffer();
+            mContourIndices.bufferData(
+             gl::size<GLuint>(idx.size()), idx.data(), GL_STATIC_DRAW);
+
+            mContourIndices.unBindBuffer();
+            mContourData.unBindBuffer();
+            mContourVao.unBindVertexArray();
         }
     }
 }

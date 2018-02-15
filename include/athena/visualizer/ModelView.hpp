@@ -30,6 +30,7 @@ namespace athena
         private:
             void constructLattices();
             void constructContours();
+            void constructMesh();
 
             polygonizer::Bsoid mSoid;
 
