@@ -9,6 +9,8 @@
 #include "Contour.hpp"
 #include "athena/tree/BlobTree.hpp"
 
+#include <atlas/utils/Mesh.hpp>
+
 #include <sstream>
 #include <string>
 #include <cinttypes>
@@ -38,9 +40,11 @@ namespace athena
 
             void constructLattices();
             void constructContours();
+            void constructMesh();
 
             Lattice const& getLattice() const;
             Contour const& getContour() const;
+            atlas::utils::Mesh& getMesh();
 
             void setName(std::string const& name);
             std::string getName() const;
@@ -48,15 +52,18 @@ namespace athena
             std::string getLog() const;
             void clearLog();
 
-            void saveLattice() const;
+            void saveMesh();
 
         private:
+            void connectContours();
+
             Lattice mLattice;
             Contour mContour;
             tree::TreePointer mTree;
             float mCrossSectionDelta;
 
             std::vector<CrossSectionPointer> mCrossSections;
+            atlas::utils::Mesh mMesh;
 
             std::stringstream mLog;
             std::string mName;

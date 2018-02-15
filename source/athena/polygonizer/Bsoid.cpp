@@ -11,7 +11,7 @@
 #if defined ATLAS_DEBUG
 #define ATHENA_DEBUG_CONTOURS 0
 
-#define ATHENA_DEBUG_CONTOUR_NUM 3
+#define ATHENA_DEBUG_CONTOUR_NUM 1
 #define ATHENA_DEBUG_CONTOUR_START 0
 #define ATHENA_DEBUG_CONTOUR_END 3
 
@@ -43,6 +43,7 @@ namespace athena
             mCrossSectionDelta(b.mCrossSectionDelta),
             mCrossSections(std::move(b.mCrossSections)),
             mLog(std::move(b.mLog)),
+            mMesh(std::move(b.mMesh)),
             mName(b.mName)
         { }
 
@@ -195,10 +196,6 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
-                ATHENA_DEBUG_CONTOUR_UNTIL(i)
-#endif
-
                 t.start();
                 section->constructLattice();
                 auto duration = t.elapsed();
@@ -214,9 +211,6 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
-                ATHENA_DEBUG_CONTOUR_UNTIL(i)
-#endif
                 voxels.insert(voxels.end(), section->getVoxels().begin(),
                     section->getVoxels().end());
                 ++i;
@@ -235,10 +229,6 @@ namespace athena
             // This can be done in parallel. I think...
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
-                ATHENA_DEBUG_CONTOUR_UNTIL(i)
-#endif
-
                 t.start();
                  section->constructContour();
                 auto duration = t.elapsed();
@@ -255,9 +245,48 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
-#if defined(ATLAS_DEBUG) && ATHENA_DEBUG_CONTOURS
-                ATHENA_DEBUG_CONTOUR_UNTIL(i)
-#endif
+                contours.insert(contours.end(), section->getContour().begin(),
+                    section->getContour().end());
+                ++i;
+            }
+
+            mContour.makeContour(contours);
+        }
+
+        void Bsoid::constructMesh()
+        {
+            atlas::core::Timer<float> global;
+            atlas::core::Timer<float> t;
+            int i = 0;
+
+            // First we need to subdivide the contours into the largest
+            // size that we have.
+            std::size_t size = 0;
+            for (auto& section : mCrossSections)
+            {
+                if (size < section->getLargestContourSize())
+                {
+                    size = section->getLargestContourSize();
+                }
+            }
+
+            // Now that we have it, lets resize all of the contours. Again
+            // this can be done in parallel.
+            for (auto& section : mCrossSections)
+            {
+                section->resizeContours(size);
+                ++i;
+            }
+
+
+            // The contours all have the same sizes, so its just a matter of
+            // connecting everything together. 
+            connectContours();
+
+            std::vector<std::vector<FieldPoint>> contours;
+            i = 0;
+            for (auto& section : mCrossSections)
+            {
                 contours.insert(contours.end(), section->getContour().begin(),
                     section->getContour().end());
                 ++i;
@@ -274,6 +303,11 @@ namespace athena
         Contour const& Bsoid::getContour() const
         {
             return mContour;
+        }
+
+        atlas::utils::Mesh& Bsoid::getMesh()
+        {
+            return mMesh;
         }
 
         void Bsoid::setName(std::string const& name)
@@ -296,12 +330,96 @@ namespace athena
             mLog.str(std::string());
         }
 
-        void Bsoid::saveLattice() const
+        void Bsoid::saveMesh()
         {
-            std::string filename = mName + "_lattice.obj";
-            std::fstream file(filename, std::fstream::out);
+            std::fstream file(mName + ".obj", std::fstream::out);
+            file << "# number of vertices: " << mMesh.vertices().size() << "\n";
+
+            for (std::size_t i = 0; i < mMesh.vertices().size(); ++i)
+            {
+                auto v = mMesh.vertices()[i];
+                auto n = mMesh.normals()[i];
+
+                file << "v " << v.x << " " << v.y << " " << v.z << "\n";
+                file << "vn " << n.x << " " << n.y << " " << n.z << "\n";
+            }
 
             file.close();
+        }
+
+        void Bsoid::connectContours()
+        {
+            // We are going to process each pair of contours to generate the 
+            // indices. First, let's insert all of the vertices from all the 
+            // contours into the mesh.
+            // Note: for now, this assumes no branching.
+            std::vector<std::pair<std::size_t, std::size_t>> contourOffsets;
+            std::size_t start = 0;
+            std::size_t num = 0;
+            int i = 0;
+            for (auto& section : mCrossSections)
+            {
+                auto contour = section->getContour();
+                // Remove when we solve branching.
+                //assert(contour.size() == 1);
+
+                for (auto& ring : contour)
+                {
+                    for (auto& pt : ring)
+                    {
+                        mMesh.vertices().push_back(pt.value.xyz());
+                        mMesh.normals().push_back(pt.g);
+                        ++num;
+                    }
+                }
+
+                contourOffsets.push_back({ start, num });
+                start += num;
+                num = 0;
+                ++i;
+            }
+
+            // Now grab the first two offsets, as these are the first two 
+            // contours.
+            for (std::size_t i = 0; i < contourOffsets.size() - 1; i++)
+            {
+                auto c1 = contourOffsets[i + 0];
+                auto c2 = contourOffsets[i + 1];
+
+                if (c1.second == 1 || c2.second == 1)
+                {
+                    // We have a cap contour. So we simply need to make a 
+                    // triangle fan.
+                    auto top = (c1.second == 1) ? c1.first : c2.first;
+                    auto bottom = (c1.second == 1) ? c2.first : c1.first;
+                    auto bSize = (c1.second == 1) ? c2.second : c1.second;
+
+                    for (std::size_t i = 0; i < bSize; ++i)
+                    {
+                        mMesh.indices().push_back(top);
+                        mMesh.indices().push_back(bottom + i);
+                        mMesh.indices().push_back(bottom + ((i + 1) % bSize));
+                    }
+
+                    continue;
+                }
+
+                // They are not caps, so we need to create the quads.
+                auto top = c1.first;
+                auto bottom = c2.first;
+                auto size = c1.second;
+                for (std::size_t i = 0; i < size; ++i)
+                {
+                    mMesh.indices().push_back(top + i);
+                    mMesh.indices().push_back(bottom + i);
+                    mMesh.indices().push_back(bottom + ((i + 1) % size));
+
+                    mMesh.indices().push_back(bottom + ((i + 1) % size));
+                    mMesh.indices().push_back(top + ((i + 1) % size));
+                    mMesh.indices().push_back(top + i);
+
+                }
+            }
         }
     }
 }
