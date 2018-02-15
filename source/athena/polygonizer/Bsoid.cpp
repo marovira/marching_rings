@@ -332,19 +332,7 @@ namespace athena
 
         void Bsoid::saveMesh()
         {
-            std::fstream file(mName + ".obj", std::fstream::out);
-            file << "# number of vertices: " << mMesh.vertices().size() << "\n";
-
-            for (std::size_t i = 0; i < mMesh.vertices().size(); ++i)
-            {
-                auto v = mMesh.vertices()[i];
-                auto n = mMesh.normals()[i];
-
-                file << "v " << v.x << " " << v.y << " " << v.z << "\n";
-                file << "vn " << n.x << " " << n.y << " " << n.z << "\n";
-            }
-
-            file.close();
+            mMesh.saveToFile(mName + ".obj");
         }
 
         void Bsoid::connectContours()
