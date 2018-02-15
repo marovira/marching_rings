@@ -503,7 +503,7 @@ namespace athena
            }
 
            std::unordered_map<std::uint64_t, FieldPoint> vertices;
-           std::unordered_map<std::uint64_t, 
+           std::map<std::uint64_t, 
                std::pair<std::size_t, std::uint64_t>> contourMap;
 
            for (std::size_t i = 0; i < segments.size(); ++i)
