@@ -123,7 +123,7 @@ namespace athena
             int i = 0;
             for (auto& contour : mContours)
             {
-                if (contour.size() < size)
+                if (contour.size() <= size)
                 {
                     subdivideContour(i, size);
                 }
