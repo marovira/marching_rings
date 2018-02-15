@@ -30,9 +30,11 @@ namespace athena
 
             void constructLattice();
             void constructContour();
+            void resizeContours(std::size_t size);
 
             std::vector<Voxel> const& getVoxels() const;
             std::vector<std::vector<FieldPoint>> const& getContour() const;
+            std::size_t getLargestContourSize() const;
 
         private:
             atlas::math::Point createCellPoint(std::uint32_t x, std::uint32_t y,
@@ -43,6 +45,7 @@ namespace athena
 
             std::vector<LineSegment> generateLineSegments();
             void convertToContour(std::vector<LineSegment> const& segments);
+            void subdivideContour(int idx, std::size_t size);
 
             void validateVoxels() const;
             void validateContour() const;
@@ -58,6 +61,7 @@ namespace athena
             std::vector<Voxel> mVoxels;
             std::vector<std::vector<FieldPoint>> mContours;
             std::unordered_map<std::uint32_t, SuperVoxel> mSuperVoxels;
+            std::size_t mLargestContourSize;
         };
     }
 }

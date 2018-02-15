@@ -23,7 +23,8 @@ namespace athena
             mMax(max),
             mGridSize(gridSize),
             mSvSize(svSize),
-            mTree(tree)
+            mTree(tree),
+            mLargestContourSize(0)
         {
             using atlas::math::Normal;
 
@@ -109,6 +110,27 @@ namespace athena
 #endif
         }
 
+        void CrossSection::resizeContours(std::size_t size)
+        {
+            // If we only have a single vertex, then return.
+            if (mLargestContourSize == 1)
+            {
+                return;
+            }
+
+            // Now let's loop through our contours and see which ones
+            // need to be resized.
+            int i = 0;
+            for (auto& contour : mContours)
+            {
+                if (contour.size() < size)
+                {
+                    subdivideContour(i, size);
+                }
+                ++i;
+            }
+        }
+
         std::vector<Voxel> const& CrossSection::getVoxels() const
         {
             return mVoxels;
@@ -118,6 +140,11 @@ namespace athena
             CrossSection::getContour() const
         {
             return mContours;
+        }
+
+        std::size_t CrossSection::getLargestContourSize() const
+        {
+            return mLargestContourSize;
         }
 
         atlas::math::Point CrossSection::createCellPoint(std::uint32_t x,
@@ -540,6 +567,101 @@ namespace athena
            }
 
            mContours.push_back(contour);
+
+           // Grab the size of the largest contour.
+           for (auto& contour : mContours)
+           {
+               if (mLargestContourSize < contour.size())
+               {
+                   mLargestContourSize = contour.size();
+               }
+           }
+       }
+
+       void CrossSection::subdivideContour(int idx, std::size_t size)
+       {
+           using atlas::math::Point;
+           using atlas::math::Vector;
+           using atlas::core::isZero;
+           using atlas::math::Normal;
+
+           auto& contour = mContours[idx];
+
+           // Compute the arc length using the contour.
+           float delta = 0.0f;
+           {
+               float arcLength = 0.0f;
+               for (std::size_t i = 0; i < contour.size() - 1; ++i)
+               {
+                   Point start = contour[i + 0].value.xyz();
+                   Point end = contour[i + 1].value.xyz();
+
+                   arcLength += glm::length(end - start);
+               }
+
+               delta = arcLength / static_cast<float>(size);
+           }
+
+           std::vector<FieldPoint> subDivContour;
+           subDivContour.push_back(contour[0]);
+           std::size_t currentSegment = 0;
+           Point previousSegmentPoint = contour[0].value.xyz();
+           float dist = delta;
+           for (std::size_t i = 1; i < size; ++i)
+           {
+               // Find where the next point is going to be.
+               bool done = false;
+               while (!done)
+               {
+                   // Construct the current segment.
+                   Point A = 
+                       contour[(currentSegment + 0) % contour.size()].value.xyz();
+                   Point B =
+                       contour[(currentSegment + 1) % contour.size()].value.xyz();
+                   Vector eps = dist * (B - A) / glm::length(B - A);
+                   Point newPt = previousSegmentPoint + eps;
+
+                   if (glm::length(newPt - A) > glm::length(B - A))
+                   {
+                       currentSegment++;
+                       float remainingDist = 
+                           glm::length(newPt - A) - glm::length(A - B);
+                       dist = remainingDist;
+                       previousSegmentPoint = B;
+                       continue;
+                   }
+
+                   // The next point is in this segment.
+                   SuperVoxel sv = mSuperVoxels[contour[currentSegment].svHash];
+                   previousSegmentPoint = newPt;
+                   if (!isZero(sv.eval(newPt)))
+                   {
+                       // The point is not on the surface, so push it towards it.
+                       // First grab the projected normal.
+                       float inVal = sv.eval(newPt);
+                       auto norm = sv.grad(newPt);
+                       norm = (inVal < 0.0f) ? norm : -norm;
+                       auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
+
+                       // Now use the delta to find a new point.
+                       Point in = newPt;
+                       Point out = in + (delta * projNorm);
+                       float outVal = sv.eval(out);
+
+                       // Use linear interpolation to find the crossing.
+                       newPt = glm::mix(in, out, (0.0f - inVal) / (outVal - inVal));
+                   }
+
+                   float val = sv.eval(newPt);
+                   Normal g = sv.grad(newPt);
+                   subDivContour.emplace_back(newPt, val, g);
+
+                   dist = delta;
+                   done = true;
+               }
+           }
+
+           contour = subDivContour;
        }
 
         void CrossSection::validateVoxels() const
