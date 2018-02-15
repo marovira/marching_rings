@@ -31,6 +31,6 @@ void main()
     vec3 lightPos = (view * vec4(Light, 1.0)).xyz;
     outData.lightDirection = outData.eyeDirection;
 
-    outData.normal = (view * model * vec4(normal, 0)).xyz;
+    outData.normal = (view * model * vec4(position, 0)).xyz;
     outData.lightDirection = Light;
 }
