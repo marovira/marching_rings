@@ -24,6 +24,13 @@ namespace athena
                 g(0.0f)
             { }
 
+            FieldPoint(atlas::math::Point const& p, float v,
+                atlas::math::Normal const& grad) :
+                value(p, v),
+                g(grad),
+                svHash(0)
+            { }
+
             FieldPoint(atlas::math::Point const& p, float v, 
                 atlas::math::Normal const& grad, std::uint32_t id) :
                 value(p, v),
