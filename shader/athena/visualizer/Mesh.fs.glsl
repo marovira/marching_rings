@@ -25,16 +25,21 @@ vec3 shadedColour()
     vec3 lightColour = vec3(1, 1, 1);
     float lightPower = 50.0;
 
-    vec3 materialDiffuseColour = metalGray.xyz;
+    vec3 materialDiffuseColour = metalGray.rgb;
     vec3 materialAmbientColour = vec3(0.1, 0.1, 0.1) * materialDiffuseColour;
     vec3 materialSpecularColour = vec3(0.3, 0.3, 0.3);
 
+    // Distance to light.
     float dist = length(inData.lightPosition - inData.position);
+
+    // Normal of the fragment.
     vec3 n = normalize(inData.normal);
 
+    // Direction of the light.
     vec3 l = normalize(inData.lightDirection);
     float cosTheta = clamp(dot(n, l), 0, 1);
 
+    // Eye vector.
     vec3 E = normalize(inData.eyeDirection);
     vec3 R = reflect(-l, n);
     float cosAlpha = clamp(dot(E, R), 0, 1);
@@ -43,6 +48,7 @@ vec3 shadedColour()
         materialDiffuseColour * lightColour * lightPower * 
         cosTheta / (dist * dist);
 }
+
 
 vec3 idNormal()
 {

@@ -25,12 +25,15 @@ void main()
     // Vertex position in world-space.
     outData.position = vec3(model * vec4(position, 1.0));
 
+    // Vertex to camera.
     vec3 vertexPos = (view * model * vec4(position, 1.0)).xyz;
     outData.eyeDirection = vec3(0, 0, 0) - vertexPos;
 
+    // Vertex to light.
     vec3 lightPos = (view * vec4(Light, 1.0)).xyz;
     outData.lightDirection = outData.eyeDirection;
 
-    outData.normal = (view * model * vec4(position, 0)).xyz;
-    outData.lightDirection = Light;
+    // Vertex normal.
+    outData.normal = (view * model * vec4(normal, 0)).xyz;
+    outData.lightPosition = Light;
 }
