@@ -45,8 +45,15 @@ namespace athena
             std::size_t mContourNumIndices;
             std::size_t mContourNumVertices;
 
+            atlas::gl::VertexArrayObject mMeshVao;
+            atlas::gl::Buffer mMeshData;
+            atlas::gl::Buffer mMeshIndices;
+            std::size_t mMeshNumIndices;
+            std::size_t mMeshNumVertices;
+
             bool mShowLattices;
             bool mShowContours;
+            bool mShowMesh;
             int mRenderMode;
         };
     }
