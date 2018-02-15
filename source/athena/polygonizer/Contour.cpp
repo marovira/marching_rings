@@ -11,6 +11,8 @@ namespace athena
 
             std::uint32_t start = 0;
             std::uint32_t numVerts = 0;
+            vertices.clear();
+            indices.clear();
 
             for (auto& contour : contours)
             {
