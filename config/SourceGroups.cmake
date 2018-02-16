@@ -4,6 +4,8 @@
 source_group("include" FILES ${ATHENA_INCLUDE_TOP_GROUP})
 source_group("include\\athena" FILES)
 source_group("include\\athena\\fields" FILES ${ATHENA_INCLUDE_FIELDS_GROUP})
+source_group("include\\athena\\operators" FILES
+    ${ATHENA_INCLUDE_OPERATORS_GROUP})
 source_group("include\\athena\\tree" FILES ${ATHENA_INCLUDE_TREE_GROUP})
 source_group("include\\athena\\polygonizer" FILES 
     ${ATHENA_INCLUDE_POLYGONIZER_GROUP})
