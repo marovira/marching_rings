@@ -16,7 +16,7 @@ namespace athena
     {
         CrossSection::CrossSection(SlicingAxes const& axis, 
             atlas::math::Point const& min, atlas::math::Point const& max, 
-            std::uint32_t gridSize, std::uint32_t svSize, 
+            std::uint32_t gridSize, std::uint32_t svSize, float isoValue,
             tree::BlobTree* tree) :
             mAxis(axis),
             mMin(min),
@@ -24,7 +24,8 @@ namespace athena
             mGridSize(gridSize),
             mSvSize(svSize),
             mTree(tree),
-            mLargestContourSize(0)
+            mLargestContourSize(0),
+            mMagic(isoValue)
         {
             using atlas::math::Normal;
 
@@ -83,7 +84,10 @@ namespace athena
                 }
             }
 
-            auto seedPoints = mTree->getSeeds(mNormal);
+            // HACK: In general, sending the iso-value as the offset won't work
+            // since not every function is symmetrical. It may be a good idea
+            // to instead have an offset be computed based on the filter used.
+            auto seedPoints = mTree->getSeeds(mNormal, mMagic);
             std::vector<Voxel> seedVoxels;
             for (auto& pt : seedPoints)
             {
@@ -240,8 +244,8 @@ namespace athena
                 {
                     start = v.points[i];
                     end = v.points[(i + 1) % v.points.size()];
-                    float val1 = start.value.w;
-                    float val2 = end.value.w;
+                    float val1 = start.value.w - mMagic;
+                    float val2 = end.value.w - mMagic;
 
                     // All that we care about is the change in sign. If there
                     // is a change, we know the surface crosses this edge.
@@ -355,7 +359,7 @@ namespace athena
                 using atlas::math::Point2;
 
                 auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
-                    (0.0f - p1.value.w) / (p2.value.w - p1.value.w));
+                    (mMagic - p1.value.w) / (p2.value.w - p1.value.w));
                 // Note that for now we assume that this is irrelevant. It may
                 // so happen that there is a case when this is no longer true.
                 auto hash = p1.svHash;
@@ -415,7 +419,7 @@ namespace athena
                 std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
                 for (std::size_t i = 0; i < 4; ++i)
                 {
-                    if (atlas::core::leq(voxel.points[i].value.w, 0.0f))
+                    if (atlas::core::leq(voxel.points[i].value.w, mMagic))
                     {
                         voxelIndex |= coeffs[i];
                     }
@@ -582,8 +586,8 @@ namespace athena
        {
            using atlas::math::Point;
            using atlas::math::Vector;
-           using atlas::core::isZero;
            using atlas::math::Normal;
+           using atlas::core::areEqual;
 
            auto& contour = mContours[idx];
 
@@ -634,13 +638,13 @@ namespace athena
                    // The next point is in this segment.
                    SuperVoxel sv = mSuperVoxels[contour[currentSegment].svHash];
                    previousSegmentPoint = newPt;
-                   if (!isZero(sv.eval(newPt)))
+                   if (!areEqual(mMagic, sv.eval(newPt)))
                    {
                        // The point is not on the surface, so push it towards it.
                        // First grab the projected normal.
                        float inVal = sv.eval(newPt);
                        auto norm = sv.grad(newPt);
-                       norm = (inVal < 0.0f) ? norm : -norm;
+                       norm = (inVal < mMagic) ? -norm : norm;
                        auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
 
                        // Now use the delta to find a new point.
@@ -649,7 +653,7 @@ namespace athena
                        float outVal = sv.eval(out);
 
                        // Use linear interpolation to find the crossing.
-                       newPt = glm::mix(in, out, (0.0f - inVal) / (outVal - inVal));
+                       newPt = glm::mix(in, out, (mMagic - inVal) / (outVal - inVal));
                    }
 
                    float val = sv.eval(newPt);

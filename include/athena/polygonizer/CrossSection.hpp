@@ -25,7 +25,7 @@ namespace athena
         public:
             CrossSection(SlicingAxes const& axis, atlas::math::Point const& min,
                 atlas::math::Point const& max, std::uint32_t gridSize,
-                std::uint32_t svSize, tree::BlobTree* tree);
+                std::uint32_t svSize, float isoValue, tree::BlobTree* tree);
             ~CrossSection() = default;
 
             void constructLattice();
@@ -54,6 +54,7 @@ namespace athena
             atlas::math::Normal mNormal;
             std::uint32_t mGridSize, mSvSize;
             glm::uvec2 mAxisId;
+            float mMagic;
 
             tree::BlobTree* mTree;
             SlicingAxes mAxis;
