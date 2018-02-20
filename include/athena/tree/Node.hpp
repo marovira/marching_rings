@@ -35,7 +35,7 @@ namespace athena
                 atlas::utils::BBox const& cell) const;
 
             std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u) const;
+                atlas::math::Normal const& u, float offset) const;
 
         private:
             fields::ImplicitFieldPtr mField;

@@ -60,12 +60,12 @@ namespace athena
         }
 
         std::vector<atlas::math::Point> BlobTree::getSeeds(
-            atlas::math::Normal const& u) const
+            atlas::math::Normal const& u, float offset) const
         {
             std::vector<atlas::math::Point> seeds;
             for (auto& node : mNodes)
             {
-                auto s = node->getSeeds(u);
+                auto s = node->getSeeds(u, offset);
                 seeds.insert(seeds.end(), s.begin(), s.end());
             }
 

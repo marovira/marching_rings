@@ -102,9 +102,9 @@ namespace athena
         }
 
         std::vector<atlas::math::Point> Node::getSeeds(
-            atlas::math::Normal const& u) const
+            atlas::math::Normal const& u, float offset) const
         {
-            return mField->getSeeds(u);
+            return mField->getSeeds(u, offset);
         }
     }
 }
