@@ -29,6 +29,19 @@ namespace athena
         {
             return d;
         }
+
+        inline float softObjects(float d)
+        {
+            constexpr float A = 4.0f / 9.0f;
+            constexpr float B = 17.0f / 9.0f;
+            constexpr float C = 22.0f / 9.0f;
+
+            float d2 = d * d;
+            float d4 = d2 * d2;
+            float d6 = d4 * d2;
+
+            return (1.0f - A * d6 + B * d4 - C * d2);
+        }
     }
 }
 
