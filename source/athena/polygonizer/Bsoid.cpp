@@ -32,9 +32,11 @@ namespace athena
             mName("model")
         { }
 
-        Bsoid::Bsoid(tree::BlobTree const& model, std::string const& name) :
+        Bsoid::Bsoid(tree::BlobTree const& model, std::string const& name,
+            float isoValue) :
             mTree(std::make_unique<tree::BlobTree>(model)),
-            mName(name)
+            mName(name),
+            mMagic(isoValue)
         { }
 
         Bsoid::Bsoid(Bsoid&& b) :
@@ -50,6 +52,11 @@ namespace athena
         void Bsoid::setModel(tree::BlobTree const& model)
         {
             mTree = std::make_unique<tree::BlobTree>(model);
+        }
+
+        void Bsoid::setIsoValue(float isoValue)
+        {
+            mMagic = isoValue;
         }
 
         void Bsoid::setCrossSectionDelta(float delta, SlicingAxes const& axis)
@@ -143,7 +150,7 @@ namespace athena
             for (std::size_t i = 0; i < mCrossSections.size() - 1; ++i)
             {
                 mCrossSections[i] = std::make_unique<CrossSection>(
-                    axis, min, max, gridSize, svSize, mTree.get());
+                    axis, min, max, gridSize, svSize, mMagic, mTree.get());
 
                 switch (axis)
                 {
@@ -184,7 +191,7 @@ namespace athena
 
             mCrossSections[mCrossSections.size() - 1] =
                 std::make_unique<CrossSection>(axis, min, max, gridSize, svSize,
-                    mTree.get());
+                    mMagic, mTree.get());
         }
 
         void Bsoid::constructLattices()

@@ -24,12 +24,14 @@ namespace athena
         {
         public:
             Bsoid();
-            Bsoid(tree::BlobTree const& model, std::string const& name);
+            Bsoid(tree::BlobTree const& model, std::string const& name,
+                float isoValue = 0.5f);
             Bsoid(Bsoid&& b);
 
             ~Bsoid() = default;
 
             void setModel(tree::BlobTree const& tree);
+            void setIsoValue(float isoValue);
 
             void setCrossSectionDelta(float delta, SlicingAxes const& axis);
             void setNumCrossSections(std::size_t num, SlicingAxes const& axis);
@@ -64,6 +66,7 @@ namespace athena
 
             std::vector<CrossSectionPointer> mCrossSections;
             atlas::utils::Mesh mMesh;
+            float mMagic;
 
             std::stringstream mLog;
             std::string mName;
