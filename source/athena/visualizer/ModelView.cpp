@@ -62,6 +62,8 @@ namespace athena
                 { std::string(ShaderDirectory) +
                 "athena/visualizer/Mesh.vs.glsl", GL_VERTEX_SHADER },
                 { std::string(ShaderDirectory) +
+                "athena/visualizer/Mesh.gs.glsl", GL_GEOMETRY_SHADER },
+                { std::string(ShaderDirectory) +
                 "athena/visualizer/Mesh.fs.glsl", GL_FRAGMENT_SHADER} 
             };
 
