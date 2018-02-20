@@ -1,12 +1,13 @@
 #version 450 core
 
-in VertexData
+in GeomData
 {
     vec3 position;
     vec3 normal;
     vec3 eyeDirection;
     vec3 lightDirection;
     vec3 lightPosition;
+    vec3 barycentric;
 } inData;
 
 out vec4 fragColour;
@@ -49,6 +50,21 @@ vec3 shadedColour()
         cosTheta / (dist * dist);
 }
 
+float amplify(float d, float scale, float offset)
+{
+    d = scale * d + offset;
+    d = clamp(d, 0, 1);
+    d = 1 - exp2(-2 * d * d);
+    return d;
+}
+
+void shadedWireframe()
+{
+    vec3 colour = shadedColour();
+    float d1 = min(min(inData.barycentric.x, inData.barycentric.y),
+            inData.barycentric.z);
+    return amplify(d1, 40, -0.5) * colour;
+}
 
 vec3 idNormal()
 {
@@ -82,6 +98,12 @@ void main()
     }
     else if (renderMode == 3)
     {
+        // Wireframe on shaded.
+        fragColour = shadedWireframe();
+    }
+    else if (renderMode == 4)
+    {
+        // Normals.
         fragColour = vec4(idNormal(), 1.0);
     }
     else
