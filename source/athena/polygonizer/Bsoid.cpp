@@ -46,7 +46,8 @@ namespace athena
             mCrossSections(std::move(b.mCrossSections)),
             mLog(std::move(b.mLog)),
             mMesh(std::move(b.mMesh)),
-            mName(b.mName)
+            mName(b.mName),
+            mMagic(b.mMagic)
         { }
 
         void Bsoid::setModel(tree::BlobTree const& model)
