@@ -1,5 +1,6 @@
 #version 450 core
 
+#include "athena/global/LayoutLocations.glsl"
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
@@ -7,7 +8,7 @@ in VertexData
 {
     vec3 position;
     vec3 normal;
-} inData[];
+} inData[3];
 
 out GeomData
 {
@@ -25,17 +26,17 @@ const vec3 Light = vec3(0, 5, 0);
 
 void main()
 {
-    int i;
-    for (i = 0; i < gl_in.length(); ++i)
+    for (int i = 0; i < gl_in.length(); ++i)
     {
-        gl_Position = projection * view * model * vec4(inData[i].position, 1.0);
+        gl_Position = gl_in[i].gl_Position;
 
-        outData.position = vec3(model * vec4(inData.position, 1.0));
-        vec3 vertexPos = (view * model * vec4(inData.position, 1.0)).xyz;
+        outData.position = vec3(model * vec4(inData[i].position, 1.0));
+        vec3 vertexPos = (view * model * vec4(inData[i].position, 1.0)).xyz;
         outData.eyeDirection = vec3(0, 0, 0) - vertexPos;
         outData.lightDirection = outData.eyeDirection;
-        outData.normal = (view * model * vec4(normal, 0)).xyz;
+        outData.normal = (view * model * vec4(inData[i].normal, 0)).xyz;
         outData.lightPosition = Light;
+
         if (i == 0)
         {
             outData.barycentric = vec3(1, 0, 0);

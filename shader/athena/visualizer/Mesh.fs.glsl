@@ -58,7 +58,7 @@ float amplify(float d, float scale, float offset)
     return d;
 }
 
-void shadedWireframe()
+vec3 shadedWireframe()
 {
     vec3 colour = shadedColour();
     float d1 = min(min(inData.barycentric.x, inData.barycentric.y),
@@ -99,7 +99,7 @@ void main()
     else if (renderMode == 3)
     {
         // Wireframe on shaded.
-        fragColour = shadedWireframe();
+        fragColour = vec4(shadedWireframe(), 1.0);
     }
     else if (renderMode == 4)
     {

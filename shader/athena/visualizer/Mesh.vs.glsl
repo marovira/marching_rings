@@ -1,6 +1,6 @@
 #version 450 core
 
-#include "athena/globa/LayoutLocations.glsl"
+#include "athena/global/LayoutLocations.glsl"
 
 layout (location = VERTICES_LAYOUT_LOCATION) in vec3 position;
 layout (location = NORMALS_LAYOUT_LOCATION) in vec3 normal;
@@ -11,10 +11,11 @@ out VertexData
     vec3 normal;
 } outData;
 
-const vec3 Light = vec3(0, 5, 0);
+#include "athena/global/UniformMatrices.glsl"
 
 void main()
 {
+    gl_Position = projection * view * model * vec4(position, 1.0);
     outData.position = position;
     outData.normal = normal;
 }
