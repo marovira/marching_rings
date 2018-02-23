@@ -5,6 +5,10 @@
 #include <atlas/utils/GUI.hpp>
 #include <atlas/core/Enum.hpp>
 
+#if defined ATLAS_DEBUG
+#define ATHENA_DEBUG_CONTOURS 1 
+#endif
+
 enum class ShaderNames : int
 {
     Lattice = 0,
@@ -166,35 +170,58 @@ namespace athena
 
             if (mShowMesh)
             {
-                auto meshIndex = enumToUnderlyingType(ShaderNames::Mesh);
-                mShaders[meshIndex].enableShaders();
-                auto var = mUniforms["mesh_renderMode"];
-
-                glUniformMatrix4fv(mUniforms["mesh_model"], 1, GL_FALSE,
-                    &mModel[0][0]);
                 mMeshVao.bindVertexArray();
                 mMeshIndices.bindBuffer();
 
                 if (mRenderMode == 0)
                 {
-                    // First draw the vertices.
+                    auto contourIndex = enumToUnderlyingType(ShaderNames::Contour);
+                    mShaders[contourIndex].enableShaders();
+                    auto var = mUniforms["contour_renderMode"];
+
+                    glUniformMatrix4fv(mUniforms["contour_model"], 1,
+                        GL_FALSE, &mModel[0][0]);
+
+                    // Draw only vertices.
                     glUniform1i(var, 0);
                     glDrawArrays(GL_POINTS, 0, mMeshNumVertices);
 
-                    // Next enable wireframe mode.
+                    mShaders[contourIndex].disableShaders();
+                }
+                else if (mRenderMode == 1)
+                {
+                    // Wireframe.
+                    auto contourIndex = enumToUnderlyingType(ShaderNames::Contour);
+                    mShaders[contourIndex].enableShaders();
+                    auto var = mUniforms["contour_renderMode"];
+                    glUniformMatrix4fv(mUniforms["contour_model"], 1,
+                        GL_FALSE, &mModel[0][0]);
+
+                    glUniform1i(var, 0);
+                    glDrawArrays(GL_POINTS, 0, mMeshNumVertices);
+
                     glUniform1i(var, 1);
                     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                     glDrawElements(GL_TRIANGLES, (GLsizei)mMeshNumIndices,
                         GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+                    mShaders[contourIndex].disableShaders();
                 }
                 else
                 {
-                    glUniform1i(var, mRenderMode + 1);
+                    auto meshIndex = enumToUnderlyingType(ShaderNames::Mesh);
+                    mShaders[meshIndex].enableShaders();
+                    auto var = mUniforms["mesh_renderMode"];
+
+                    glUniformMatrix4fv(mUniforms["mesh_model"], 1, GL_FALSE,
+                        &mModel[0][0]);
+                    glUniform1i(var, mRenderMode);
                     mMeshVao.bindVertexArray();
                     mMeshIndices.bindBuffer();
                     glDrawElements(GL_TRIANGLES, (GLsizei)mMeshNumIndices,
                         GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                    mShaders[meshIndex].disableShaders();
                 }
 
                 mMeshIndices.unBindBuffer();
@@ -249,8 +276,8 @@ namespace athena
             ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiSetCond_FirstUseEver);
             ImGui::Begin("Render Controls");
 
-            std::vector<const char*> renderNames = { "Wireframe", "Shaded", 
-                "Normals" };
+            std::vector<const char*> renderNames = { "Vertices", "Wireframe", 
+                "Shaded", "Wireframe on Shaded", "Normals" };
             ImGui::Combo("Render mode", &mRenderMode, renderNames.data(),
                 ((int)renderNames.size()));
             ImGui::End();
@@ -344,14 +371,18 @@ namespace athena
             mSoid.constructMesh();
 
             // Update the contour buffers.
-            auto verts = mSoid.getContour().vertices;
-            auto idx = mSoid.getContour().indices;
+            std::vector<atlas::math::Point> verts;
+            std::vector<std::uint32_t> idx;
+
+#if defined(ATLAS_DEBUG) && !(ATHENA_DEBUG_CONTOURS)
+            verts = mSoid.getContour().vertices;
+            idx = mSoid.getContour().indices;
             mContourNumIndices = idx.size();
             mContourNumVertices = verts.size();
 
             if (mContourNumIndices == 0)
             {
-             return;
+                return;
             }
 
             mContourVao.bindVertexArray();
@@ -367,6 +398,7 @@ namespace athena
             mContourIndices.unBindBuffer();
             mContourData.unBindBuffer();
             mContourVao.unBindVertexArray();
+#endif
 
             // Now grab the mesh data.
             verts = mSoid.getMesh().vertices();
@@ -407,6 +439,7 @@ namespace athena
 
             mMeshIndices.unBindBuffer();
             mMeshData.unBindBuffer();
+            mMeshVao.unBindVertexArray();
         }
     }
 }
