@@ -10,6 +10,10 @@
 #include <unordered_set>
 #include <queue>
 
+#if defined ATLAS_DEBUG
+#define ATHENA_DEBUG_CONTOURS 0 
+#endif
+
 namespace athena
 {
     namespace polygonizer
@@ -591,14 +595,56 @@ namespace athena
 
            auto& contour = mContours[idx];
 
+#if defined(ATLAS_DEBUG) && !(ATHENA_DEBUG_CONTOURS)
+           auto pushToSurface = 
+               [this, contour](Point const& p, std::size_t i, float delta)
+           {
+               // First check if we are already on the surface.
+               SuperVoxel sv = mSuperVoxels[contour[i].svHash];
+               if (areEqual(mMagic, sv.eval(p)))
+               {
+                   float val = sv.eval(p);
+                   Normal g = sv.grad(p);
+                   return FieldPoint(p, val, g);
+               }
+
+               Point in = p;
+               float inVal = sv.eval(in);
+               auto norm = sv.grad(in);
+               norm = (inVal < mMagic) ? -norm : norm;
+               auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
+
+               float d = delta;
+               Point out = in + (delta * projNorm);
+               float outVal = sv.eval(out);
+               while (glm::sign(outVal - mMagic) == glm::sign(inVal - mMagic))
+               {
+                   d += delta;
+                   out = in + (d * projNorm);
+                   outVal = sv.eval(out);
+               }
+
+               Point newPt = glm::mix(in, out, (mMagic - inVal) / (outVal - inVal));
+               float val = sv.eval(newPt);
+               Normal g = sv.grad(newPt);
+               return FieldPoint(newPt, val, g);
+           };
+#elif defined(ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+           auto pushToSurface = [](Point const& p, std::size_t i, float delta)
+           {
+               return FieldPoint(p, 0.0f);
+           };
+#endif
+
            // Compute the arc length using the contour.
            float delta = 0.0f;
            {
                float arcLength = 0.0f;
-               for (std::size_t i = 0; i < contour.size() - 1; ++i)
+               std::size_t cSize = contour.size();
+               for (std::size_t i = 0; i < cSize; ++i)
                {
                    Point start = contour[i + 0].value.xyz();
-                   Point end = contour[i + 1].value.xyz();
+                   Point end = contour[(i + 1) % cSize].value.xyz();
 
                    arcLength += glm::length(end - start);
                }
@@ -607,9 +653,10 @@ namespace athena
            }
 
            std::vector<FieldPoint> subDivContour;
-           subDivContour.push_back(contour[0]);
            std::size_t currentSegment = 0;
            Point previousSegmentPoint = contour[0].value.xyz();
+           subDivContour.push_back(pushToSurface(previousSegmentPoint, 
+               currentSegment, delta));
            float dist = delta;
            for (std::size_t i = 1; i < size; ++i)
            {
@@ -622,43 +669,22 @@ namespace athena
                        contour[(currentSegment + 0) % contour.size()].value.xyz();
                    Point B =
                        contour[(currentSegment + 1) % contour.size()].value.xyz();
-                   Vector eps = dist * (B - A) / glm::length(B - A);
+                   Vector eps = dist * ((B - A) / glm::length(B - A));
                    Point newPt = previousSegmentPoint + eps;
 
-                   if (glm::length(newPt - A) > glm::length(B - A))
-                   {
+                   if (glm::length(newPt - A) > glm::length(B - A)) {
                        currentSegment++;
-                       float remainingDist = 
-                           glm::length(newPt - A) - glm::length(A - B);
-                       dist = remainingDist;
+                       float travelledDistance =
+                           glm::distance(B, previousSegmentPoint);
+                       dist -= travelledDistance;
                        previousSegmentPoint = B;
                        continue;
                    }
 
                    // The next point is in this segment.
-                   SuperVoxel sv = mSuperVoxels[contour[currentSegment].svHash];
+                   auto s = pushToSurface(newPt, currentSegment, delta);
                    previousSegmentPoint = newPt;
-                   if (!areEqual(mMagic, sv.eval(newPt)))
-                   {
-                       // The point is not on the surface, so push it towards it.
-                       // First grab the projected normal.
-                       float inVal = sv.eval(newPt);
-                       auto norm = sv.grad(newPt);
-                       norm = (inVal < mMagic) ? -norm : norm;
-                       auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
-
-                       // Now use the delta to find a new point.
-                       Point in = newPt;
-                       Point out = in + (delta * projNorm);
-                       float outVal = sv.eval(out);
-
-                       // Use linear interpolation to find the crossing.
-                       newPt = glm::mix(in, out, (mMagic - inVal) / (outVal - inVal));
-                   }
-
-                   float val = sv.eval(newPt);
-                   Normal g = sv.grad(newPt);
-                   subDivContour.emplace_back(newPt, val, g);
+                   subDivContour.emplace_back(s);
 
                    dist = delta;
                    done = true;
