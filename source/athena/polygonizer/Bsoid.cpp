@@ -9,18 +9,17 @@
 #include <fstream>
 
 #if defined ATLAS_DEBUG
-#define ATHENA_DEBUG_CONTOURS 0
+#define ATHENA_DEBUG_CONTOURS 0 
 
-#define ATHENA_DEBUG_CONTOUR_NUM 1
-#define ATHENA_DEBUG_CONTOUR_START 0
-#define ATHENA_DEBUG_CONTOUR_END 3
+#define ATHENA_DEBUG_CONTOUR_START 5
+#define ATHENA_DEBUG_CONTOUR_END 5
 
-#define ATHENA_DEBUG_CONTOUR_UNTIL(i) \
-if (i >= ATHENA_DEBUG_CONTOUR_NUM) { ++i; continue; }
-#define ATHENA_DEBUG_SPECIFIC_CONTOUR(i) \
-if (i != ATHENA_DEBUG_CONTOUR_NUM) { ++i; continue; }
-#define ATHENA_DEBUG_CONTOUR_RANGE(i) \
-if (i < ATHENA_DEBUG_CONTOUR_START || i > ATHENA_DEBUG_CONTOUR_END) { ++i; continue; }
+#define ATHENA_DEBUG_CONTOUR_RANGE(i, start, end) \
+if (i < start || i > end) \
+{\
+    ++i;\
+    continue;\
+}
 #endif
 
 
@@ -204,6 +203,10 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS) && 0
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 t.start();
                 section->constructLattice();
                 auto duration = t.elapsed();
@@ -219,6 +222,10 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 voxels.insert(voxels.end(), section->getVoxels().begin(),
                     section->getVoxels().end());
                 ++i;
@@ -237,6 +244,10 @@ namespace athena
             // This can be done in parallel. I think...
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS) && 0
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 t.start();
                  section->constructContour();
                 auto duration = t.elapsed();
@@ -253,6 +264,10 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 contours.insert(contours.end(), section->getContour().begin(),
                     section->getContour().end());
                 ++i;
@@ -265,7 +280,6 @@ namespace athena
         {
             atlas::core::Timer<float> global;
             atlas::core::Timer<float> t;
-            int i = 0;
 
             // First we need to subdivide the contours into the largest
             // size that we have.
@@ -280,8 +294,13 @@ namespace athena
 
             // Now that we have it, lets resize all of the contours. Again
             // this can be done in parallel.
+            int i = 0;
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 section->resizeContours(size);
                 ++i;
             }
@@ -295,6 +314,10 @@ namespace athena
             i = 0;
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 contours.insert(contours.end(), section->getContour().begin(),
                     section->getContour().end());
                 ++i;
@@ -355,6 +378,10 @@ namespace athena
             int i = 0;
             for (auto& section : mCrossSections)
             {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
                 auto contour = section->getContour();
                 // Remove when we solve branching.
                 //assert(contour.size() == 1);
@@ -381,6 +408,10 @@ namespace athena
             {
                 auto c1 = contourOffsets[i + 0];
                 auto c2 = contourOffsets[i + 1];
+                if (c1.second == 0 || c2.second == 0)
+                {
+                    continue;
+                }
 
                 if (c1.second == 1 || c2.second == 1)
                 {
@@ -400,10 +431,13 @@ namespace athena
                     continue;
                 }
 
-                // They are not caps, so we need to create the quads.
+                // Safety check.
+                assert(c1.second == c2.second);
+
                 auto top = c1.first;
                 auto bottom = c2.first;
                 auto size = c1.second;
+
                 for (std::size_t i = 0; i < size; ++i)
                 {
                     mMesh.indices().push_back(top + i);
@@ -413,7 +447,6 @@ namespace athena
                     mMesh.indices().push_back(bottom + ((i + 1) % size));
                     mMesh.indices().push_back(top + ((i + 1) % size));
                     mMesh.indices().push_back(top + i);
-
                 }
             }
         }
