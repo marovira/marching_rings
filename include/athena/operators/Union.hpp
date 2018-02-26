@@ -17,7 +17,7 @@ namespace athena
             Union() = default;
             ~Union() = default;
 
-            atlas::utils::BBox getBBox() const
+            atlas::utils::BBox getBBox() const override
             {
                 atlas::utils::BBox box;
                 for (auto& f : mFields)
@@ -28,7 +28,7 @@ namespace athena
                 return box;
             }
 
-            atlas::math::Normal grad(atlas::math::Point const& p) const
+            atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
                 atlas::math::Normal gradient;
                 for (auto& f : mFields)
@@ -40,19 +40,20 @@ namespace athena
             }
 
             std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u) const
+                atlas::math::Normal const& u, float offset) const override
             {
-                std::vector result;
+                std::vector<atlas::math::Point> result;
                 for (auto& f : mFields)
                 {
-                    result.push_back(f->getSeeds(u));
+                    auto seeds = f->getSeeds(u, offset);
+                    result.insert(result.end(), seeds.begin(), seeds.end());
                 }
 
                 return result;
             }
 
         private:
-            float sdf(atlas::math::Point const& p) const
+            float sdf(atlas::math::Point const& p) const override
             {
                 float field = 0.0f;
                 for (auto& f : mFields)

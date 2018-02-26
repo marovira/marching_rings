@@ -11,20 +11,13 @@ namespace athena
 {
     namespace operators
     {
-        template <std::size_t Arity>
         class ImplicitOperator;
 
-        template <std::size_t Arity>
         class Blend;
-
-        template <std::size_t Arity>
         class Union;
-
-        template <std::size_t Arity>
         class Intersection;
 
-        template <std::size_t Arity>
-        using ImplicitOperatorPtr = std::shared_ptr<ImplicitOperator<Arity>>;
+        using ImplicitOperatorPtr = std::shared_ptr<ImplicitOperator>;
     }
 }
 
