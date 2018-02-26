@@ -12,22 +12,12 @@ namespace athena
 {
     namespace operators
     {
-        template <std::size_t Arity>
-        class Intersection : public ImplicitOperator<Arity>
+        class Intersection : public ImplicitOperator
         {
-            Intersection() = default;
+            Intersection()
+            { }
+
             ~Intersection() = default;
-
-            atlas::utils::BBox getBBox() const override
-            {
-                atlas::utils::BBox box;
-                for (auto& f : mFields)
-                {
-                    box = atlas::utils::join(box, f->getBBox());
-                }
-
-                return box;
-            }
 
             atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
@@ -66,6 +56,22 @@ namespace athena
                 }
 
                 return field;
+            }
+
+            atlas::utils::BBox box() const override
+            {
+                atlas::utils::BBox box;
+                for (auto& f : mFields)
+                {
+                    box = atlas::utils::join(box, f->getBBox());
+                }
+
+                return box;
+            }
+
+            Intersection* cloneEmpty() const override
+            {
+                return new Intersection;
             }
         };
     }

@@ -10,23 +10,13 @@ namespace athena
 {
     namespace operators
     {
-        template <std::size_t Arity>
-        class Union : public ImplicitOperator<Arity>
+        class Union : public ImplicitOperator
         {
         public:
-            Union() = default;
+            Union()
+            { }
+
             ~Union() = default;
-
-            atlas::utils::BBox getBBox() const override
-            {
-                atlas::utils::BBox box;
-                for (auto& f : mFields)
-                {
-                    box = atlas::utils::join(box, f->getBBox());
-                }
-
-                return box;
-            }
 
             atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
@@ -62,6 +52,22 @@ namespace athena
                 }
 
                 return field;
+            }
+
+            atlas::utils::BBox box() const override
+            {
+                atlas::utils::BBox box;
+                for (auto& f : mFields)
+                {
+                    box = atlas::utils::join(box, f->getBBox());
+                }
+
+                return box;
+            }
+
+            Union* cloneEmpty() const override
+            {
+                return new Union;
             }
         };
     }
