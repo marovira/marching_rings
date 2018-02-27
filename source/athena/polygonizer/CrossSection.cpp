@@ -77,10 +77,10 @@ namespace athena
                     BBox cell(pt, pt + mSvDelta);
 
                     SuperVoxel sv;
-                    sv.fields = mTree->getOverlappingFields(cell);
+                    sv.field = mTree->getSubTree(cell);
                     sv.id = { x, y };
 
-                    if (!sv.fields.empty())
+                    if (!sv.field)
                     {
                         auto idx = BsoidHash32::hash(x, y);
                         mSuperVoxels[idx] = sv;
