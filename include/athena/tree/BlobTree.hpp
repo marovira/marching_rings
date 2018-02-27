@@ -22,10 +22,15 @@ namespace athena
             void insertField(fields::ImplicitFieldPtr const& field);
             void inserFields(
                 std::vector<fields::ImplicitFieldPtr> const& fields);
-            void insertNodeTree(std::vector<std::vector<int>> const& tree);
 
-            std::vector<fields::ImplicitFieldPtr>
-                getOverlappingFields(atlas::utils::BBox const& box) const;
+            void insertNodeTree(std::vector<std::vector<int>> const& tree);
+            void insertFieldTree(fields::ImplicitFieldPtr const& tree);
+
+            float eval(atlas::math::Point const& p) const;
+            atlas::math::Normal grad(atlas::math::Point const& p) const;
+
+            fields::ImplicitFieldPtr getSubTree(
+                atlas::utils::BBox const& box) const;
 
             atlas::utils::BBox getTreeBox() const;
             std::vector<atlas::math::Point> getSeeds(
@@ -33,7 +38,8 @@ namespace athena
 
         private:
             std::vector<NodePtr> mNodes;
-            NodePtr mTree;
+            NodePtr mVolumeTree;
+            fields::ImplicitFieldPtr mFieldTree;
         };
     }
 }

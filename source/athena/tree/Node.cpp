@@ -1,4 +1,5 @@
 #include "athena/tree/Node.hpp"
+#include "athena/operators/ImplicitOperator.hpp"
 
 namespace athena
 {
@@ -54,57 +55,45 @@ namespace athena
             return mParent;
         }
 
-        std::vector<fields::ImplicitFieldPtr> Node::visit(
+        fields::ImplicitFieldPtr Node::subTree(
             atlas::utils::BBox const& cell) const
         {
-            // First check against our box. If the cell isn't inside,
-            // return immediately.
+            using operators::ImplicitOperatorPtr;
+            using operators::ImplicitOperator;
+            // Check if we have an overlap. If we don't return null.
             if (!mBox.overlaps(cell))
             {
-                return {};
+                return nullptr;
             }
 
-            // We know the cell is inside our box, so now we check if we have
-            // children. If we don't the we are a leaf and we return the field
-            // we hold.
+            // We know the cell is in our box. If we don't have any children,
+            // we are a leaf, so just return the field as is.
             if (mChildren.empty())
             {
-                return { mField };
+                return mField;
             }
 
-            // We are not a leaf node, so we need to figure out which of our
-            // children contains the point.
-            std::vector<std::size_t> overlaps;
-            std::size_t i = 0;
+            // So we know that the point is in our box, and we have children.
+            // This means (and it should mean) that we have have an operator
+            // as our field. So first lets cast the pointer.
+            ImplicitOperatorPtr op = 
+                std::dynamic_pointer_cast<ImplicitOperator>(mField);
+            assert(op);
+
+            // We have successfully converted the pointer, so let's make a new
+            // empty copy of the pointer.
+            auto result = op->makeEmpty();
+
             for (auto& child : mChildren)
             {
-                if (child->getBBox().overlaps(cell))
+                auto childField = child->subTree(cell);
+                if (!childField)
                 {
-                    overlaps.push_back(i);
+                    result->insertField(childField);
                 }
-
-                ++i;
             }
 
-            std::vector<fields::ImplicitFieldPtr> ret;
-            if (mField->getBBox().overlaps(cell))
-            {
-                ret.push_back(mField);
-            }
-
-            for (auto& idx : overlaps)
-            {
-                auto v = mChildren[idx]->visit(cell);
-                ret.insert(ret.end(), v.begin(), v.end());
-            }
-
-            return ret;
-        }
-
-        std::vector<atlas::math::Point> Node::getSeeds(
-            atlas::math::Normal const& u, float offset) const
-        {
-            return mField->getSeeds(u, offset);
+            return result;
         }
     }
 }

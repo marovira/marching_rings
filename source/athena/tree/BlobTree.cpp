@@ -45,31 +45,43 @@ namespace athena
 
             // The final index is the parent, so just assign that and clear
             // the copies of the node.
-            mTree = mNodes[tree.size() - 1];
+            mVolumeTree = mNodes[tree.size() - 1];
         }
 
-        std::vector<fields::ImplicitFieldPtr> BlobTree::getOverlappingFields(
+        void BlobTree::insertFieldTree(fields::ImplicitFieldPtr const& tree)
+        {
+            mFieldTree = tree;
+        }
+
+        float BlobTree::eval(atlas::math::Point const& p) const
+        {
+            // Theoretically, we should be able to do this:
+            //using atlas::utils::BBox;
+            //auto subTree = getSubTree(BBox(p, p));
+            //return subTree->eval(p);
+            return mFieldTree->eval(p);
+        }
+
+        atlas::math::Normal BlobTree::grad(atlas::math::Point const& p) const
+        {
+            return mFieldTree->grad(p);
+        }
+
+        fields::ImplicitFieldPtr BlobTree::getSubTree(
             atlas::utils::BBox const& box) const
         {
-            return mTree->visit(box);
+            return mVolumeTree->subTree(box);
         }
 
         atlas::utils::BBox BlobTree::getTreeBox() const
         {
-            return mTree->getBBox();
+            return mVolumeTree->getBBox();
         }
 
         std::vector<atlas::math::Point> BlobTree::getSeeds(
             atlas::math::Normal const& u, float offset) const
         {
-            std::vector<atlas::math::Point> seeds;
-            for (auto& node : mNodes)
-            {
-                auto s = node->getSeeds(u, offset);
-                seeds.insert(seeds.end(), s.begin(), s.end());
-            }
-
-            return seeds;
+            return mFieldTree->getSeeds(u, offset);
         }
     }
 }
