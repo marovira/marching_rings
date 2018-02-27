@@ -20,28 +20,16 @@ namespace athena
 
             float eval(atlas::math::Point const& p) const
             {
-                float value = 0.0f;
-                for (auto& field : fields)
-                {
-                    value += field->eval(p);
-                }
-
-                return value;
+                return field->eval(p);
             }
 
             atlas::math::Normal grad(atlas::math::Point const& p) const
             {
-                atlas::math::Normal gradient;
-                for (auto& field : fields)
-                {
-                    gradient += field->grad(p);
-                }
-
-                return gradient;
+                return field->grad(p);
             }
 
             glm::u32vec2 id;
-            std::vector<fields::ImplicitFieldPtr> fields;
+            fields::ImplicitFieldPtr field;
             atlas::utils::BBox cell;
         };
     }
