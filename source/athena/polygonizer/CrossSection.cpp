@@ -613,6 +613,7 @@ namespace athena
                auto norm = sv.grad(in);
                norm = (inVal < mMagic) ? -norm : norm;
                auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
+               projNorm = glm::normalize(projNorm);
 
                float d = delta;
                Point out = in + (delta * projNorm);
