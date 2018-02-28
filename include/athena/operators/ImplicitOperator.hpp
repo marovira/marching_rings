@@ -23,6 +23,11 @@ namespace athena
                 return ImplicitOperatorPtr(cloneEmpty());
             }
 
+            atlas::utils::BBox getBBox() const override
+            {
+                return box();
+            }
+
             void insertField(fields::ImplicitFieldPtr const& field)
             {
                 mFields.push_back(field);
@@ -35,6 +40,11 @@ namespace athena
                 {
                     insertField(field);
                 }
+            }
+
+            float eval(atlas::math::Point const& p) const override
+            {
+                return sdf(p);
             }
 
             virtual atlas::math::Normal grad(
