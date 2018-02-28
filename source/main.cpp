@@ -4,6 +4,7 @@
 #include "athena/visualizer/ModelVisualizer.hpp"
 
 #include "athena/fields/Sphere.hpp"
+#include "athena/operators/Blend.hpp"
 #include "athena/tree/BlobTree.hpp"
 #include "athena/polygonizer/Bsoid.hpp"
 
@@ -24,11 +25,13 @@ athena::polygonizer::Bsoid makeSphere()
     ImplicitFieldPtr sphere = std::make_shared<Sphere>();
     BlobTree tree;
     tree.insertField(sphere);
-    tree.insertNodeTree({ {-1} });
+    tree.insertNodeTree({ { -1 } });
+    tree.insertFieldTree(sphere);
 
     Bsoid soid(tree, "sphere");
-    soid.setNumCrossSections(32, SlicingAxes::YAxis);
-    soid.makeCrossSections(SlicingAxes::YAxis, 8, 4);
+    soid.setSlicingAxis(SlicingAxes::YAxis);
+    soid.setNumCrossSections(8);
+    soid.makeCrossSections(8, 4);
     return soid;
 }
 
@@ -37,20 +40,27 @@ athena::polygonizer::Bsoid makePeanut()
     // Polygonizer using.
     using atlas::math::Point;
     using athena::fields::ImplicitFieldPtr;
+    using athena::operators::ImplicitOperatorPtr;
     using athena::fields::Sphere;
+    using athena::operators::Blend;
     using athena::tree::BlobTree;
     using athena::polygonizer::Bsoid;
     using athena::polygonizer::SlicingAxes;
 
-    ImplicitFieldPtr sphere1 = std::make_shared<Sphere>(1.0f, Point(0.5f, 0, 0));
-    ImplicitFieldPtr sphere2 = std::make_shared<Sphere>(1.0f, Point(-0.5f, 0, 0));
+    ImplicitFieldPtr sphere1 = std::make_shared<Sphere>(1.0f, Point(1.0f, 0, 0));
+    ImplicitFieldPtr sphere2 = std::make_shared<Sphere>(1.0f, Point(-1.0f, 0, 0));
+    ImplicitOperatorPtr blend = std::make_shared<Blend>();
+    blend->insertFields({ sphere1, sphere2 });
+
     BlobTree tree;
-    tree.inserFields({ sphere1, sphere2 });
-    tree.insertNodeTree({ {-1}, {0} });
+    tree.insertFields({ sphere1, sphere2, blend });
+    tree.insertNodeTree({ { -1 }, { -1 }, { 0, 1 } });
+    tree.insertFieldTree(blend);
 
     Bsoid soid(tree, "peanut");
-    soid.setNumCrossSections(32, SlicingAxes::XAxis);
-    soid.makeCrossSections(SlicingAxes::XAxis, 8, 4);
+    soid.setSlicingAxis(SlicingAxes::XAxis);
+    soid.setNumCrossSections(32);
+    soid.makeCrossSections(8, 4);
     return soid;
 }
 
