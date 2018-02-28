@@ -34,7 +34,8 @@ void main()
         vec3 vertexPos = (view * model * vec4(inData[i].position, 1.0)).xyz;
         outData.eyeDirection = vec3(0, 0, 0) - vertexPos;
         outData.lightDirection = outData.eyeDirection;
-        outData.normal = (view * model * vec4(inData[i].normal, 0)).xyz;
+        outData.normal = normalize((view * model * vec4(inData[i].normal,
+                        0)).xyz);
         outData.lightPosition = Light;
 
         if (i == 0)

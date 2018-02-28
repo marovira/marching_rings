@@ -17,5 +17,5 @@ void main()
 {
     gl_Position = projection * view * model * vec4(position, 1.0);
     outData.position = position;
-    outData.normal = normal;
+    outData.normal = normalize(normal);
 }
