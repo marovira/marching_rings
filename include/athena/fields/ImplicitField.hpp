@@ -24,7 +24,7 @@ namespace athena
 
             virtual ~ImplicitField() = default;
 
-            atlas::utils::BBox getBBox() const
+            virtual atlas::utils::BBox getBBox() const
             {
                 auto b = box();
                 b.expand(1.0f);
@@ -36,7 +36,7 @@ namespace athena
                 mFilter = fn;
             }
 
-            float eval(atlas::math::Point const& p) const
+            virtual float eval(atlas::math::Point const& p) const
             {
                 return mFilter(sdf(p));
             }
