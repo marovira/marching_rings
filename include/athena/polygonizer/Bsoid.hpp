@@ -32,13 +32,13 @@ namespace athena
 
             void setModel(tree::BlobTree const& tree);
             void setIsoValue(float isoValue);
+            void setSlicingAxis(SlicingAxes const& axis);
 
-            void setCrossSectionDelta(float delta, SlicingAxes const& axis);
-            void setNumCrossSections(std::size_t num, SlicingAxes const& axis);
+            void setCrossSectionDelta(float delta);
+            void setNumCrossSections(std::size_t num);
             std::size_t numCrossSections() const;
 
-            void makeCrossSections(SlicingAxes const& axis,
-                std::uint32_t gridSize, std::uint32_t svSize);
+            void makeCrossSections(std::uint32_t gridSize, std::uint32_t svSize);
 
             void constructLattices();
             void constructContours();
@@ -63,6 +63,7 @@ namespace athena
             Contour mContour;
             tree::TreePointer mTree;
             float mCrossSectionDelta;
+            SlicingAxes mAxis;
 
             std::vector<CrossSectionPointer> mCrossSections;
             atlas::utils::Mesh mMesh;

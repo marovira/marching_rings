@@ -59,14 +59,19 @@ namespace athena
             mMagic = isoValue;
         }
 
-        void Bsoid::setCrossSectionDelta(float delta, SlicingAxes const& axis)
+        void Bsoid::setSlicingAxis(SlicingAxes const& axis)
+        {
+            mAxis = axis;
+        }
+
+        void Bsoid::setCrossSectionDelta(float delta)
         {
             // Grab the box of the model.
             auto box = mTree->getTreeBox();
             auto slices = (box.pMax - box.pMin) / delta;
             std::size_t numSlices = 0;
 
-            switch (axis)
+            switch (mAxis)
             {
             case SlicingAxes::XAxis:
                 numSlices = static_cast<std::size_t>(slices.x);
@@ -86,11 +91,11 @@ namespace athena
             mCrossSections.resize(numSlices);
         }
 
-        void Bsoid::setNumCrossSections(std::size_t num, SlicingAxes const& axis)
+        void Bsoid::setNumCrossSections(std::size_t num)
         {
             auto box = mTree->getTreeBox();
             auto deltas = (box.pMax - box.pMin) / static_cast<float>(num - 1);
-            switch (axis)
+            switch (mAxis)
             {
             case SlicingAxes::XAxis:
                 mCrossSectionDelta = deltas.x;
@@ -113,8 +118,8 @@ namespace athena
             return 0;
         }
 
-        void Bsoid::makeCrossSections(SlicingAxes const& axis,
-            std::uint32_t gridSize, std::uint32_t svSize)
+        void Bsoid::makeCrossSections(std::uint32_t gridSize, 
+            std::uint32_t svSize)
         {
             using atlas::math::Point;
 
@@ -129,7 +134,7 @@ namespace athena
             Point min, max;
             min = box.pMin;
             float maxAxis = 0.0f;
-            switch (axis)
+            switch (mAxis)
             {
             case SlicingAxes::XAxis:
                 max = Point(box.pMin.x, box.pMax.yz());
@@ -150,9 +155,9 @@ namespace athena
             for (std::size_t i = 0; i < mCrossSections.size() - 1; ++i)
             {
                 mCrossSections[i] = std::make_unique<CrossSection>(
-                    axis, min, max, gridSize, svSize, mMagic, mTree.get());
+                    mAxis, min, max, gridSize, svSize, mMagic, mTree.get());
 
-                switch (axis)
+                switch (mAxis)
                 {
                 case SlicingAxes::XAxis:
                     min.x += mCrossSectionDelta;
@@ -171,7 +176,7 @@ namespace athena
             }
 
             // Make sure that the final plane is always at the end of the box.
-            switch (axis)
+            switch (mAxis)
             {
             case SlicingAxes::XAxis:
                 min.x = maxAxis;
@@ -190,7 +195,7 @@ namespace athena
             }
 
             mCrossSections[mCrossSections.size() - 1] =
-                std::make_unique<CrossSection>(axis, min, max, gridSize, svSize,
+                std::make_unique<CrossSection>(mAxis, min, max, gridSize, svSize,
                     mMagic, mTree.get());
         }
 
