@@ -36,6 +36,16 @@ namespace athena
             constexpr float B = 17.0f / 9.0f;
             constexpr float C = 22.0f / 9.0f;
 
+            if (d < 0.0f)
+            {
+                return 1.0f;
+            }
+
+            if (d > 1.0f)
+            {
+                return 0.0f;
+            }
+
             float d2 = d * d;
             float d4 = d2 * d2;
             float d6 = d4 * d2;
