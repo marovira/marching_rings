@@ -12,7 +12,7 @@ namespace athena
             mNodes.push_back(std::make_shared<Node>(field));
         }
 
-        void BlobTree::inserFields(
+        void BlobTree::insertFields(
             std::vector<fields::ImplicitFieldPtr> const& fields)
         {
             for (auto& field : fields)

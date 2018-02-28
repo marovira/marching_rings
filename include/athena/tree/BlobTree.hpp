@@ -20,7 +20,7 @@ namespace athena
             ~BlobTree() = default;
 
             void insertField(fields::ImplicitFieldPtr const& field);
-            void inserFields(
+            void insertFields(
                 std::vector<fields::ImplicitFieldPtr> const& fields);
 
             void insertNodeTree(std::vector<std::vector<int>> const& tree);
