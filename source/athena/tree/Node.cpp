@@ -87,7 +87,7 @@ namespace athena
             for (auto& child : mChildren)
             {
                 auto childField = child->subTree(cell);
-                if (!childField)
+                if (childField)
                 {
                     result->insertField(childField);
                 }

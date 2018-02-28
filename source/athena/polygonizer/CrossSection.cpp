@@ -80,7 +80,7 @@ namespace athena
                     sv.field = mTree->getSubTree(cell);
                     sv.id = { x, y };
 
-                    if (!sv.field)
+                    if (sv.field)
                     {
                         auto idx = BsoidHash32::hash(x, y);
                         mSuperVoxels[idx] = sv;
