@@ -103,7 +103,7 @@ namespace athena
             std::string filename = name + "_image_";
             while (true)
             {
-                std::ifstream file(name + std::to_string(num) + ".png");
+                std::ifstream file(filename + std::to_string(num) + ".png");
                 if (!file)
                 {
                     break;
