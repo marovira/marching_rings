@@ -184,6 +184,7 @@ namespace athena
             std::map<std::uint32_t, VoxelId> seenVoxels;
             std::queue<PointId> frontier;
 
+
             auto toSuperVoxel = [this](Point const& p)
             {
                 auto v = (p - mMin) / mSvDelta;
@@ -210,30 +211,58 @@ namespace athena
                 return FieldPoint(p, val, g, svHash);
             };
 
-            auto generateVoxel = [this, &seenPoints, evalPoint](Voxel& v)
+            auto findPoint = [this, &seenPoints, evalPoint](PointId const& id)
+            {
+                auto entry = seenPoints.find(BsoidHash32::hash(id.x, id.y));
+                if (entry != seenPoints.end())
+                {
+                    // We have seen this point already, so grab it from our list.
+                    return (*entry).second;
+                }
+                else
+                {
+                    // We haven't seen this point yet, so we need to add it
+                    // to our list.
+                    auto pt = createCellPoint(id, mGridDelta);
+                    auto vp = evalPoint(pt);
+                    auto hash = BsoidHash32::hash(id.x, id.y);
+                    seenPoints.insert(
+                        std::pair<std::uint32_t, FieldPoint>(hash, vp));
+                    return vp;
+                }
+            };
+
+            auto validateSeedVoxel = [this, findPoint](Voxel const& v)
+            {
+                using atlas::core::leq;
+                int d = 0;
+                Voxel voxel = v;
+                for (auto& decal : VoxelDecals)
+                {
+                    voxel.points[d] = findPoint(v.id + decal);
+                    ++d;
+                }
+
+                std::uint16_t index = 0;
+                std::vector<std::uint16_t> coeffs = { 1, 2, 4, 8 };
+                for (std::size_t i = 0; i < 4; ++i)
+                {
+                    if (leq(voxel.points[i].value.w, mMagic))
+                    {
+                        index |= coeffs[i];
+                    }
+                }
+
+                return (EdgeTable[index] != 0);
+            };
+
+            auto generateVoxel = [this, findPoint](Voxel& v)
             {
                 int d = 0;
                 for (auto& decal : VoxelDecals)
                 {
                     auto decalId = v.id + decal;
-                    auto entry = seenPoints.find(
-                        BsoidHash32::hash(decalId.x, decalId.y));
-                    if (entry != seenPoints.end())
-                    {
-                        // We have seen this point already, so grab it from our list.
-                        v.points[d] = (*entry).second;
-                    }
-                    else
-                    {
-                        // We haven't seen this point yet, so we need to add it
-                        // to our list.
-                        auto pt = createCellPoint(decalId, mGridDelta);
-                        auto vp = evalPoint(pt);
-                        auto hash = BsoidHash32::hash(decalId.x, decalId.y);
-                        seenPoints.insert(
-                            std::pair<std::uint32_t, FieldPoint>(hash, vp));
-                        v.points[d] = vp;
-                    }
+                    v.points[d] = findPoint(decalId);
                     ++d;
                 }
             };
@@ -263,6 +292,73 @@ namespace athena
                 return edges;
             };
 
+            auto getNextNeighbour = [this](atlas::math::Normal const& g)
+            {
+                using atlas::core::isZero;
+
+                if (isZero(glm::length2(g)))
+                {
+                    return PointId(0, 0);
+                }
+
+                if (g[mAxisId.x] > g[mAxisId.y])
+                {
+                    return PointId(1, 0);
+                }
+
+                if (g[mAxisId.y] > g[mAxisId.x])
+                {
+                    return PointId(0, 1);
+                }
+
+                return PointId(1, 1);
+            };
+
+            auto findSurface = [this, getNextNeighbour, validateSeedVoxel](Voxel const& start)
+            {
+                bool found = false;
+                Voxel last, current{ start };
+
+                while (!found)
+                {
+                    // The centre of the voxel can be seen as the lower left 
+                    // corner of a voxel in the grid that is twice the resolution
+                    // of our current grid.
+                    auto cPos = (2u * current.id) + glm::u32vec2(1, 1);
+                    Point origin = createCellPoint(cPos, mGridDelta / 2.0f);
+                    float originVal = mTree->eval(origin);
+
+                    if (originVal < mMagic)
+                    {
+                        // Check if the current voxel is valid (i.e. contains a 
+                        // crossing with the iso-surface. If it does, return it.
+                        if (validateSeedVoxel(current))
+                        {
+                            return current;
+                        }
+                        else
+                        {
+                            if (last.isValid() && validateSeedVoxel(last))
+                            {
+                                return last;
+                            }
+                        }
+                    }
+
+                    auto g = -mTree->grad(origin);
+                    auto dir = g - glm::proj(g - mMin, mNormal);
+                    auto next = getNextNeighbour(dir);
+
+                    if (next != PointId(0, 0))
+                    {
+                        last = current;
+                        current = { current.id + next };
+                    }
+                }
+
+                return Voxel{};
+            };
+
             if (seeds.empty())
             {
                 DEBUG_LOG_V("Cross-section (%f, %f, %f) exiting on empty seeds.",
@@ -274,7 +370,16 @@ namespace athena
             {
                 for (auto& seed : seeds)
                 {
-                    int i = 0;
+                    if (!validateSeedVoxel(seed))
+                    {
+                        auto v = findSurface(seed);
+                        if (v.isValid())
+                        {
+                            frontier.push(v.id);
+                        }
+                        continue;
+                    }
+
                     for (auto& decal : VoxelDecals)
                     {
                         auto decalId = seed.id + decal;
@@ -284,11 +389,15 @@ namespace athena
                         seenPoints.insert(
                             std::pair<std::uint32_t, FieldPoint>(hash, vp));
                     }
-                    i++;
                     frontier.push(seed.id);
                 }
             }
 
+            if (frontier.empty())
+            {
+                DEBUG_LOG("Exiting on empty queue.");
+                return;
+            }
 
             while (!frontier.empty())
             {
