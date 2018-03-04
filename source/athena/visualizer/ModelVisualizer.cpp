@@ -5,7 +5,6 @@
 #include <atlas/core/STB.hpp>
 #include <atlas/core/Log.hpp>
 
-#include <cstdarg>
 #include <algorithm>
 #include <fstream>
 
