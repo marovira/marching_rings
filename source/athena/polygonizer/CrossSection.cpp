@@ -232,30 +232,6 @@ namespace athena
                 }
             };
 
-            auto validateSeedVoxel = [this, findPoint](Voxel const& v)
-            {
-                using atlas::core::leq;
-                int d = 0;
-                Voxel voxel = v;
-                for (auto& decal : VoxelDecals)
-                {
-                    voxel.points[d] = findPoint(v.id + decal);
-                    ++d;
-                }
-
-                std::uint16_t index = 0;
-                std::vector<std::uint16_t> coeffs = { 1, 2, 4, 8 };
-                for (std::size_t i = 0; i < 4; ++i)
-                {
-                    if (leq(voxel.points[i].value.w, mMagic))
-                    {
-                        index |= coeffs[i];
-                    }
-                }
-
-                return (EdgeTable[index] != 0);
-            };
-
             auto generateVoxel = [this, findPoint](Voxel& v)
             {
                 int d = 0;
@@ -292,73 +268,6 @@ namespace athena
                 return edges;
             };
 
-            auto getNextNeighbour = [this](atlas::math::Normal const& g)
-            {
-                using atlas::core::isZero;
-
-                if (isZero(glm::length2(g)))
-                {
-                    return PointId(0, 0);
-                }
-
-                if (g[mAxisId.x] > g[mAxisId.y])
-                {
-                    return PointId(1, 0);
-                }
-
-                if (g[mAxisId.y] > g[mAxisId.x])
-                {
-                    return PointId(0, 1);
-                }
-
-                return PointId(1, 1);
-            };
-
-            auto findSurface = [this, getNextNeighbour, validateSeedVoxel](Voxel const& start)
-            {
-                bool found = false;
-                Voxel last, current{ start };
-
-                while (!found)
-                {
-                    // The centre of the voxel can be seen as the lower left 
-                    // corner of a voxel in the grid that is twice the resolution
-                    // of our current grid.
-                    auto cPos = (2u * current.id) + glm::u32vec2(1, 1);
-                    Point origin = createCellPoint(cPos, mGridDelta / 2.0f);
-                    float originVal = mTree->eval(origin);
-
-                    if (originVal < mMagic)
-                    {
-                        // Check if the current voxel is valid (i.e. contains a 
-                        // crossing with the iso-surface. If it does, return it.
-                        if (validateSeedVoxel(current))
-                        {
-                            return current;
-                        }
-                        else
-                        {
-                            if (last.isValid() && validateSeedVoxel(last))
-                            {
-                                return last;
-                            }
-                        }
-                    }
-
-                    auto g = -mTree->grad(origin);
-                    auto dir = g - glm::proj(g - mMin, mNormal);
-                    auto next = getNextNeighbour(dir);
-
-                    if (next != PointId(0, 0))
-                    {
-                        last = current;
-                        current = { current.id + next };
-                    }
-                }
-
-                return Voxel{};
-            };
-
             if (seeds.empty())
             {
                 DEBUG_LOG_V("Cross-section (%f, %f, %f) exiting on empty seeds.",
@@ -370,16 +279,6 @@ namespace athena
             {
                 for (auto& seed : seeds)
                 {
-                    if (!validateSeedVoxel(seed))
-                    {
-                        auto v = findSurface(seed);
-                        if (v.isValid())
-                        {
-                            frontier.push(v.id);
-                        }
-                        continue;
-                    }
-
                     for (auto& decal : VoxelDecals)
                     {
                         auto decalId = seed.id + decal;
@@ -512,7 +411,7 @@ namespace athena
                 }
                 else
                 {
-                    // We haven't seent this point, so it's important that
+                    // We haven't seen this point, so it's important that
                     // we enter the point twice!
                     auto pt = interpolate(fp1, fp2);
                     LinePoint p(pt, edgeHash1);
