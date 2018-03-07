@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cinttypes>
+#include <limits>
 
 namespace athena
 {
