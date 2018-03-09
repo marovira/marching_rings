@@ -47,12 +47,7 @@ namespace athena
                 return sdf(p);
             }
 
-            virtual atlas::math::Normal grad(
-                atlas::math::Point const& p) const = 0;
-
         protected:
-            virtual float sdf(atlas::math::Point const& p) const = 0;
-            virtual atlas::utils::BBox box() const = 0;
             virtual ImplicitOperator* cloneEmpty() const = 0;
 
             std::vector<fields::ImplicitFieldPtr> mFields;
