@@ -184,7 +184,6 @@ namespace athena
             std::map<std::uint32_t, VoxelId> seenVoxels;
             std::queue<PointId> frontier;
 
-
             auto toSuperVoxel = [this](Point const& p)
             {
                 auto v = (p - mMin) / mSvDelta;
@@ -275,21 +274,88 @@ namespace athena
                 return;
             }
 
-            // First fill in the values of each of the seeds and insert them.
+            // Before anything else happens, we need to ensure that the seed 
+            // voxels are actually on the surface itself.
             {
+                using atlas::math::Point2;
+                auto containsSurface = [this, generateVoxel, getEdges](Voxel const& v)
+                {
+                    // First fill in the voxel points.
+                    Voxel voxel = v;
+                    generateVoxel(voxel);
+
+                    // Now that we have them, let's check to see if the voxel
+                    // is indeed in the surface.
+                    auto edges = getEdges(voxel);
+                    return !edges.empty();
+                };
+
+                auto findSurface = [this, containsSurface](Voxel const& v)
+                {
+                    bool found = false;
+                    Voxel last, current;
+                    current = v;
+
+                    while (!found)
+                    {
+                        auto cPos = (2u * v.id) + glm::u32vec2(1, 1);
+                        Point origin = createCellPoint(cPos, mGridDelta / 2.0f);
+                        float originVal = mTree->eval(origin);
+                        auto norm = mTree->grad(origin);
+                        norm = (originVal < mMagic) ? -norm : norm;
+                        auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
+                        projNorm = glm::normalize(projNorm);
+
+                        // Now find the voxel that we are pointing to.
+                        auto absNorm = glm::abs(projNorm);
+                        Point2 next;
+                        if (absNorm[mAxisId.x] > absNorm[mAxisId.y])
+                        {
+                            // We need to move along the x axis.
+                            next = (projNorm[mAxisId.x] > 0.0f) ? Point2(1, 0) :
+                                Point2(-1, 0);
+                        }
+                        else if (absNorm[mAxisId.y] > absNorm[mAxisId.x])
+                        {
+                            // We need to move along the y axis.
+                            next = (projNorm[mAxisId.y] > 0.0f) ? Point2(0, 1) :
+                                Point2(0, -1);
+                        }
+                        else
+                        {
+                            // They are both equal, so move along the diagonal
+                            // depending on the value of x and y.
+                            next.x = (projNorm[mAxisId.x] > 0.0f) ? 1 : -1;
+                            next.y = (projNorm[mAxisId.y] > 0.0f) ? 1 : -1;
+                        }
+
+                        current.id.x += static_cast<std::uint32_t>(next.x);
+                        current.id.y += static_cast<std::uint32_t>(next.y);
+
+                        // Check if the new voxel contains the surface.
+                        if (containsSurface(current))
+                        {
+                            break;
+                        }
+                    }
+                    return current;
+                };
+
+                std::vector<Voxel> surfaceVoxels;
                 for (auto& seed : seeds)
                 {
-                    for (auto& decal : VoxelDecals)
+                    auto v = seed;
+                    if (!containsSurface(seed))
                     {
-                        auto decalId = seed.id + decal;
-                        auto hash = BsoidHash32::hash(decalId.x, decalId.y);
-                        auto pt = createCellPoint(decalId, mGridDelta);
-                        auto vp = evalPoint(pt);
-                        seenPoints.insert(
-                            std::pair<std::uint32_t, FieldPoint>(hash, vp));
+                        // TODO: Figure out why adding the other voxel in 
+                        // messes up the alignment of the quads.
+                        v = findSurface(v);
+                        surfaceVoxels.push_back(v);
+                        continue;
                     }
-                    frontier.push(seed.id);
+                    frontier.push(v.id);
                 }
+
             }
 
             if (frontier.empty())
