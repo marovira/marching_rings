@@ -2,6 +2,7 @@
 
 #include <atlas/core/Timer.hpp>
 #include <atlas/core/Macros.hpp>
+#include <atlas/core/Assert.hpp>
 
 #include <numeric>
 #include <functional>
@@ -11,8 +12,8 @@
 #if defined ATLAS_DEBUG
 #define ATHENA_DEBUG_CONTOURS 0 
 
-#define ATHENA_DEBUG_CONTOUR_START 5
-#define ATHENA_DEBUG_CONTOUR_END 5
+#define ATHENA_DEBUG_CONTOUR_START 13
+#define ATHENA_DEBUG_CONTOUR_END 13
 
 #define ATHENA_DEBUG_CONTOUR_RANGE(i, start, end) \
 if (i < start || i > end) \
@@ -208,7 +209,7 @@ namespace athena
             // This can be done in parallel.
             for (auto& section : mCrossSections)
             {
-#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS) && 0
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
@@ -249,7 +250,7 @@ namespace athena
             // This can be done in parallel. I think...
             for (auto& section : mCrossSections)
             {
-#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS) && 0
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
@@ -388,8 +389,8 @@ namespace athena
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
                 auto contour = section->getContour();
-                // Remove when we solve branching.
-                //assert(contour.size() == 1);
+                ATLAS_ASSERT(contour.size() == 0 || contour.size() == 1,
+                    "Branching is currently not allowed.");
 
                 for (auto& ring : contour)
                 {
@@ -437,7 +438,8 @@ namespace athena
                 }
 
                 // Safety check.
-                assert(c1.second == c2.second);
+                ATLAS_ASSERT(c1.second == c2.second,
+                    "The sizes between contours should be identical.");
 
                 auto top = c1.first;
                 auto bottom = c2.first;
