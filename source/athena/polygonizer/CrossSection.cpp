@@ -4,6 +4,7 @@
 
 #include <atlas/core/Float.hpp>
 #include <atlas/core/Log.hpp>
+#include <atlas/core/Assert.hpp>
 
 #include <map>
 #include <unordered_map>
@@ -33,7 +34,8 @@ namespace athena
         {
             using atlas::math::Normal;
 
-            assert(gridSize % svSize == 0);
+            ATLAS_ASSERT(gridSize % svSize == 0,
+                "Grid size must be a multiple of super-voxel grid size.");
 
             auto const& start = min;
             auto const& end = max;
@@ -341,21 +343,15 @@ namespace athena
                     return current;
                 };
 
-                std::vector<Voxel> surfaceVoxels;
                 for (auto& seed : seeds)
                 {
                     auto v = seed;
                     if (!containsSurface(seed))
                     {
-                        // TODO: Figure out why adding the other voxel in 
-                        // messes up the alignment of the quads.
                         v = findSurface(v);
-                        surfaceVoxels.push_back(v);
-                        continue;
                     }
                     frontier.push(v.id);
                 }
-
             }
 
             if (frontier.empty())
@@ -477,13 +473,17 @@ namespace athena
                 }
                 else
                 {
-                    // We haven't seen this point, so it's important that
-                    // we enter the point twice!
+                    // We choose the smallest hash to store. This ensures that
+                    // we always choose the same hash across different
+                    // cross-sections.
                     auto pt = interpolate(fp1, fp2);
-                    LinePoint p(pt, edgeHash1);
+                    auto edgeHash = (edgeHash1 < edgeHash2) ?
+                        edgeHash1 : edgeHash2;
+
+                    LinePoint p(pt, edgeHash);
                     computedPoints.insert(
                         std::pair<std::uint64_t, LinePoint>(edgeHash1, p));
-                    return LinePoint(pt, edgeHash1);
+                    return p;
                 }
 
             };
@@ -511,7 +511,8 @@ namespace athena
                 }
 
                 // Safety check.
-                assert(EdgeTable[voxelIndex] != 0);
+                ATLAS_ASSERT(EdgeTable[voxelIndex] != 0,
+                    "Voxel should not be empty by this point.");
 
                 std::vector<LinePoint> vertList(4);
                 if (EdgeTable[voxelIndex] & 1)
@@ -632,9 +633,9 @@ namespace athena
                    // Check if there is more than one segment.
                    if (it->first == startPt && i != (segments.size() - 1))
                    {
-                       // Something happens here.
-                       DEBUG_LOG("Found end of contour.");
-                       mContours.push_back(contour);
+                       // Remove when branching works.
+                       ATLAS_ASSERT(false,
+                           "Multiple contours per cross-section is not allowed.");
                    }
 
                    if (!used[it->second.first])
@@ -778,7 +779,8 @@ namespace athena
                 seenMap.insert(std::pair<std::uint32_t, Voxel>(hash, voxel));
             }
 
-            assert(seenMap.size() == mVoxels.size());
+            ATLAS_ASSERT(seenMap.size() == mVoxels.size(),
+                "There should be no repeated voxels in the lattice.");
             DEBUG_LOG("Voxel validation succeeded.");
         }
 
@@ -813,7 +815,8 @@ namespace athena
                 }
             }
 
-            assert(uniques.size() == size);
+            ATLAS_ASSERT(uniques.size() == size,
+                "There should be no repeated vertices in the contour.");
             DEBUG_LOG("Contour validation succeeded.");
         }
     }
