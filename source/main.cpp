@@ -30,7 +30,7 @@ athena::polygonizer::Bsoid makeSphere()
 
     Bsoid soid(tree, "sphere");
     soid.setSlicingAxis(SlicingAxes::YAxis);
-    soid.setNumCrossSections(8);
+    soid.setNumCrossSections(16);
     soid.makeCrossSections(8, 4);
     return soid;
 }
@@ -60,7 +60,7 @@ athena::polygonizer::Bsoid makePeanut()
     Bsoid soid(tree, "peanut");
     soid.setSlicingAxis(SlicingAxes::XAxis);
     soid.setNumCrossSections(32);
-    soid.makeCrossSections(8, 4);
+    soid.makeCrossSections(16, 4);
     return soid;
 }
 
@@ -78,7 +78,7 @@ int main()
 
     std::vector<athena::polygonizer::Bsoid> models;
     models.emplace_back(makeSphere());
-    models.emplace_back(makePeanut());
+    //models.emplace_back(makePeanut());
 
     atlas::gl::setGLErrorSeverity(ATLAS_GL_ERROR_SEVERITY_HIGH |
         ATLAS_GL_ERROR_SEVERITY_MEDIUM);
