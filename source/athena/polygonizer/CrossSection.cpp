@@ -473,12 +473,10 @@ namespace athena
                 }
                 else
                 {
-                    // We choose the smallest hash to store. This ensures that
-                    // we always choose the same hash across different
-                    // cross-sections.
                     auto pt = interpolate(fp1, fp2);
-                    auto edgeHash = (edgeHash1 < edgeHash2) ?
-                        edgeHash1 : edgeHash2;
+                    // HACK: This produces twisting on quads if the edges
+                    // don't align. Needs to be fixed in post.
+                    auto edgeHash = edgeHash1;
 
                     LinePoint p(pt, edgeHash);
                     computedPoints.insert(
@@ -561,15 +559,6 @@ namespace athena
                     auto start = vertList[LineTable[voxelIndex][i + 0]];
                     auto end   = vertList[LineTable[voxelIndex][i + 1]];
                     segments.emplace_back(start, end);
-                    //DEBUG_LOG_V("(%.2f, %.2f, %.2f, %llu) -> (%.2f, %.2f, %.2f, %llu)",
-                    //    start.point.value.x,
-                    //    start.point.value.y,
-                    //    start.point.value.z,
-                    //    start.edge,
-                    //    end.point.value.x,
-                    //    end.point.value.y,
-                    //    end.point.value.z,
-                    //    end.edge);
                 }
                 ++k;
             }
