@@ -412,6 +412,11 @@ namespace athena
                         continue;
                     }
 
+                    if (neighbourDecal.x > mGridSize || neighbourDecal.y > mGridSize)
+                    {
+                        continue;
+                    }
+
                     frontier.push(neighbourDecal);
                 }
 
