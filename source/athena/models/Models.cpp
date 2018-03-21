@@ -1,6 +1,7 @@
 #include "athena/models/Models.hpp"
 
 #include "athena/fields/Sphere.hpp"
+#include "athena/fields/Cylinder.hpp"
 
 #include "athena/operators/Blend.hpp"
 
@@ -41,7 +42,7 @@ namespace athena
             Bsoid soid(tree, "sphere");
             soid.setSlicingAxis(SlicingAxes::YAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
-            soid.makeCrossSections(std::get<1>(currentResolution), 
+            soid.makeCrossSections(std::get<1>(currentResolution),
                 std::get<2>(currentResolution));
             return soid;
         }
@@ -52,9 +53,9 @@ namespace athena
             using fields::Sphere;
             using operators::Blend;
 
-            ImplicitFieldPtr sphere1 = 
+            ImplicitFieldPtr sphere1 =
                 std::make_shared<Sphere>(1.0f, Point(1.0f, 0, 0));
-            ImplicitFieldPtr sphere2 = 
+            ImplicitFieldPtr sphere2 =
                 std::make_shared<Sphere>(1.0f, Point(-1.0f, 0, 0));
             ImplicitOperatorPtr blend = std::make_shared<Blend>();
             blend->insertFields({ sphere1, sphere2 });
@@ -71,6 +72,25 @@ namespace athena
                 std::get<2>(currentResolution));
             return soid;
 
+        }
+
+        polygonizer::Bsoid makeCylinder()
+        {
+            using atlas::math::Point;
+            using fields::Cylinder;
+
+            ImplicitFieldPtr cylinder = std::make_shared<Cylinder>();
+            BlobTree tree;
+            tree.insertField(cylinder);
+            tree.insertNodeTree({ { -1 } });
+            tree.insertFieldTree(cylinder);
+
+            Bsoid soid(tree, "cylinder");
+            soid.setSlicingAxis(SlicingAxes::ZAxis);
+            soid.setNumCrossSections(std::get<0>(currentResolution));
+            soid.makeCrossSections(std::get<1>(currentResolution),
+                std::get<2>(currentResolution));
+            return soid;
         }
     }
 }

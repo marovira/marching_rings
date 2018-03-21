@@ -18,6 +18,7 @@ namespace athena
 
         MAKE_FUNCTION(Sphere);
         MAKE_FUNCTION(Peanut);
+        MAKE_FUNCTION(Cylinder);
     }
 }
 
