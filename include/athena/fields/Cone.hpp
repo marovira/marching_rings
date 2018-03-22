@@ -1,5 +1,5 @@
-#ifndef ATHENA_INCLUDE_ATHENA_FIELDS_CYLINDER_HPP
-#define ATHENA_INCLUDE_ATHENA_FIELDS_CYLINDER_HPP
+#ifndef ATHENA_INCLUDE_ATHENA_FIELDS_CONE_HPP
+#define ATHENA_INCLUDE_ATHENA_FIELDS_CONE_HPP
 
 #pragma once
 
@@ -14,7 +14,7 @@ namespace athena
         public:
             Cone() :
                 mRadius(1.0f),
-                mHeight(3.0f)
+                mHeight(1.0f)
             { }
 
             Cone(float radius, float height) :
@@ -24,27 +24,65 @@ namespace athena
 
             atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
-                return atlas::math::Normal();
+                auto g = p.xz() - mCentre;
+                return { 2.0f * g.x, 0.0f, -2.0f * g.y };
+
             }
 
             std::vector<atlas::math::Point> getSeeds(atlas::math::Normal const& u,
                 float offset) const override
             {
-                return {};
+                // First project the centre onto the plane.
+                auto centre = atlas::math::Point(mCentre.x, 0.0f, mCentre.y);
+                auto v = centre - u;
+                auto d = glm::proj(v, glm::normalize(u));
+                auto proj = centre - d;
+
+                float radius = mRadius + offset;
+                float l = glm::length(proj - centre);
+                if (l > radius)
+                {
+                    return {};
+                }
+
+                float rp =
+                    glm::sqrt((radius * radius) - glm::length2(proj - centre));
+                auto seed = proj;
+                for (int i = 0; i < 3; ++i)
+                {
+                    if (u[i] == 0.0f)
+                    {
+                        seed[i] += rp;
+                        break;
+                    }
+                }
+
+                return { seed };
             }
 
         private:
             float sdf(atlas::math::Point const& p) const override
             {
-                return 0.0f;
+                float denom = glm::length2(p.xz());
+                float c = mRadius / mHeight;
+
+                return (denom / (c * c)) - (p.y * p.y);
+
             }
 
             atlas::utils::BBox box() const override
             {
-                return atlas::utils::BBox();
+                using atlas::utils::BBox;
+                using atlas::math::Point;
+
+                Point min = Point(mCentre.x, 0.0f, mCentre.y) - mRadius;
+                Point max = Point(mCentre.x, mHeight, mCentre.y) + mRadius;
+
+                return BBox(min, max);
             }
 
             float mRadius, mHeight;
+            atlas::math::Point2 mCentre;
         };
     }
 }
