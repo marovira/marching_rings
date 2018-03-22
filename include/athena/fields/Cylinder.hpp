@@ -20,7 +20,7 @@ namespace athena
 
             Cylinder(float radius, float height, atlas::math::Point2 const& centre) :
                 mRadius(radius),
-                mHeight(height),
+                mHeight(height / 2.0f),
                 mCentre(centre)
             { }
 
