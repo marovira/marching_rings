@@ -2,6 +2,7 @@
 
 #include "athena/fields/Sphere.hpp"
 #include "athena/fields/Cylinder.hpp"
+#include "athena/fields/Cone.hpp"
 
 #include "athena/operators/Blend.hpp"
 
@@ -86,6 +87,25 @@ namespace athena
             tree.insertFieldTree(cylinder);
 
             Bsoid soid(tree, "cylinder");
+            soid.setSlicingAxis(SlicingAxes::ZAxis);
+            soid.setNumCrossSections(std::get<0>(currentResolution));
+            soid.makeCrossSections(std::get<1>(currentResolution),
+                std::get<2>(currentResolution));
+            return soid;
+        }
+
+        polygonizer::Bsoid makeCone()
+        {
+            using atlas::math::Point;
+            using fields::Cone;
+
+            ImplicitFieldPtr cone = std::make_shared<Cone>();
+            BlobTree tree;
+            tree.insertField(cone);
+            tree.insertNodeTree({ { -1 } });
+            tree.insertFieldTree(cone);
+
+            Bsoid soid(tree, "cone");
             soid.setSlicingAxis(SlicingAxes::ZAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
             soid.makeCrossSections(std::get<1>(currentResolution),
