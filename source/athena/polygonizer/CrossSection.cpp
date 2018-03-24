@@ -334,8 +334,8 @@ namespace athena
                         current.id.x += static_cast<std::uint32_t>(next.x);
                         current.id.y += static_cast<std::uint32_t>(next.y);
 
-                        // Check if 
-                        if (!current.isValid())
+                        // Check if the voxel hasn't run off the edge of the grid.
+                        if (!validVoxel(current))
                         {
                             break;
                         }
