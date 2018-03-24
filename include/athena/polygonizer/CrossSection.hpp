@@ -47,6 +47,8 @@ namespace athena
             void convertToContour(std::vector<LineSegment> const& segments);
             void subdivideContour(int idx, std::size_t size);
 
+            bool validVoxel(Voxel const& v) const;
+
             void validateVoxels() const;
             void validateContour() const;
 

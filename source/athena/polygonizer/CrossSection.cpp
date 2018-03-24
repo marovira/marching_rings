@@ -334,6 +334,12 @@ namespace athena
                         current.id.x += static_cast<std::uint32_t>(next.x);
                         current.id.y += static_cast<std::uint32_t>(next.y);
 
+                        // Check if 
+                        if (!current.isValid())
+                        {
+                            break;
+                        }
+
                         // Check if the new voxel contains the surface.
                         if (containsSurface(current))
                         {
@@ -349,6 +355,10 @@ namespace athena
                     if (!containsSurface(seed))
                     {
                         v = findSurface(v);
+                        if (!validVoxel(v))
+                        {
+                            continue;
+                        }
                     }
                     frontier.push(v.id);
                 }
@@ -407,12 +417,7 @@ namespace athena
                     neighbourDecal.y += decal.y;
 
                     // Make sure that we don't run off the edge of the grid.
-                    if (!Voxel(neighbourDecal).isValid())
-                    {
-                        continue;
-                    }
-
-                    if (neighbourDecal.x > mGridSize || neighbourDecal.y > mGridSize)
+                    if (!validVoxel(Voxel(neighbourDecal)))
                     {
                         continue;
                     }
@@ -762,6 +767,14 @@ namespace athena
            }
 
            contour = subDivContour;
+       }
+
+       bool CrossSection::validVoxel(Voxel const& v) const
+       {
+           return (
+               v.isValid() &&
+               v.id.x < mGridSize &&
+               v.id.y < mGridSize);
        }
 
         void CrossSection::validateVoxels() const
