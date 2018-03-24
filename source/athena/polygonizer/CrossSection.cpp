@@ -632,9 +632,27 @@ namespace athena
                    // Check if there is more than one segment.
                    if (it->first == startPt && i != (segments.size() - 1))
                    {
-                       // Remove when branching works.
-                       ATLAS_ASSERT(false,
-                           "Multiple contours per cross-section is not allowed.");
+                       // We have encountered a branch. So first save the 
+                       // current contour and then clear it.
+                       mContours.push_back(contour);
+                       contour.clear();
+
+                       // Now we need to select the next point. We can do this
+                       // by running through the map until we find the next 
+                       // free vertex.
+                       // HACK: Is there a better way of doing this?
+                       for (auto& vertex : contourMap)
+                       {
+                           if (!used[vertex.second.first])
+                           {
+                               // This vertex hasn't been used yet, so set it
+                               // to be our current vertex.
+                               currentPt = vertex.first;
+                               currentIdx = vertex.second;
+                               startPt = vertex.first;
+                               break;
+                           }
+                       }
                    }
 
                    if (!used[it->second.first])
