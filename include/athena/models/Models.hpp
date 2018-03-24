@@ -20,6 +20,7 @@ namespace athena
         MAKE_FUNCTION(Peanut);
         MAKE_FUNCTION(Cylinder);
         MAKE_FUNCTION(Cone);
+        MAKE_FUNCTION(Torus);
     }
 }
 

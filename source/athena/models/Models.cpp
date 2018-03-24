@@ -3,6 +3,7 @@
 #include "athena/fields/Sphere.hpp"
 #include "athena/fields/Cylinder.hpp"
 #include "athena/fields/Cone.hpp"
+#include "athena/fields/Torus.hpp"
 
 #include "athena/operators/Blend.hpp"
 
@@ -67,7 +68,7 @@ namespace athena
             tree.insertFieldTree(blend);
 
             Bsoid soid(tree, "peanut");
-            soid.setSlicingAxis(SlicingAxes::XAxis);
+            soid.setSlicingAxis(SlicingAxes::YAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
             soid.makeCrossSections(std::get<1>(currentResolution),
                 std::get<2>(currentResolution));
@@ -106,6 +107,25 @@ namespace athena
             tree.insertFieldTree(cone);
 
             Bsoid soid(tree, "cone");
+            soid.setSlicingAxis(SlicingAxes::ZAxis);
+            soid.setNumCrossSections(std::get<0>(currentResolution));
+            soid.makeCrossSections(std::get<1>(currentResolution),
+                std::get<2>(currentResolution));
+            return soid;
+        }
+
+        polygonizer::Bsoid makeTorus()
+        {
+            using atlas::math::Point;
+            using fields::Torus;
+
+            ImplicitFieldPtr torus = std::make_shared<Torus>();
+            BlobTree tree;
+            tree.insertField(torus);
+            tree.insertNodeTree({ { -1 } });
+            tree.insertFieldTree(torus);
+
+            Bsoid soid(tree, "torus");
             soid.setSlicingAxis(SlicingAxes::ZAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
             soid.makeCrossSections(std::get<1>(currentResolution),
