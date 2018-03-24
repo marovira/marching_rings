@@ -40,9 +40,24 @@ namespace athena
             }
 
             std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u) const override
+                atlas::math::Normal const& u, float offset) const override
             {
-                return {};
+                using atlas::math::Point;
+
+                // First project the centre onto the plane.
+                auto v = mCentre - u;
+                auto d = glm::proj(v, glm::normalize(u));
+                auto proj = mCentre - d;
+
+                float inner = mInner + offset;
+                float outer = mOuter + offset;
+                float l = glm::length(proj - mCentre);
+                if (l > (inner + outer))
+                {
+                    return {};
+                }
+
+
             }
 
         private:
