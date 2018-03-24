@@ -5,6 +5,8 @@
 
 #include "ImplicitField.hpp"
 
+#include <atlas/core/Float.hpp>
+
 namespace athena
 {
     namespace fields
@@ -13,8 +15,8 @@ namespace athena
         {
         public:
             Torus() :
-                mInner(1.0f),
-                mOuter(3.0f),
+                mInner(2.0f),
+                mOuter(1.0f),
                 mCentre(0.0f)
             { }
 
@@ -43,6 +45,8 @@ namespace athena
                 atlas::math::Normal const& u, float offset) const override
             {
                 using atlas::math::Point;
+                using atlas::core::leq;
+                using atlas::core::geq;
 
                 // First project the centre onto the plane.
                 auto v = mCentre - u;
@@ -57,7 +61,64 @@ namespace athena
                     return {};
                 }
 
+                // Check which axis we are slicing along.
+                float rp = 0.0f;
+                std::vector<Point> seeds;
+                auto translatePoint = [u](atlas::math::Point& seed, float rp)
+                {
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        if (u[i] == 0.0f)
+                        {
+                            seed[i] += rp;
+                            break;
+                        }
+                    }
+                };
 
+                if (u.y != 0.0f || u.x != 0.0f)
+                {
+                    // Both x and y behave the same way.
+                    // Check to see if we are between the two radii.
+                    if (leq(inner, l))
+                    {
+                        // We haven't reached the hole of the torus yet, so 
+                        // treat it like a sphere.
+                        rp = glm::sqrt((outer * outer) - glm::length2(proj - mCentre));
+                        Point seed = proj;
+                        translatePoint(seed, rp);
+                        seeds.push_back(seed);
+                    }
+                    else
+                    {
+                        // We are in the hole area, so we need to 
+                        // return two points.
+                        rp = glm::sqrt((inner * inner) - glm::length2(proj - mCentre));
+                        Point seed = proj;
+                        translatePoint(seed, rp);
+                        seeds.push_back(seed);
+
+                        rp *= -1.0f;
+                        seed = proj;
+                        translatePoint(seed, rp);
+                        seeds.push_back(seed);
+                    }
+                }
+                else
+                {
+                    // Slicing along the z axis.
+                    rp = glm::sqrt((outer * outer) - glm::length2(proj - mCentre));
+                    Point seed = proj;
+                    translatePoint(seed, rp);
+                    seeds.push_back(seed);
+
+                    rp = glm::sqrt((inner * inner) - glm::length2(proj - mCentre));
+                    seed = proj;
+                    translatePoint(seed, rp);
+                    seeds.push_back(seed);
+                }
+
+                return seeds;
             }
 
         private:
