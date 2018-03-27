@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "athena/fields/ImplicitField.hpp"
 #include "athena/polygonizer/Bsoid.hpp"
+#include "athena/polygonizer/MarchingCubes.hpp"
 
 #include <atlas/utils/Geometry.hpp>
 #include <atlas/utils/Mesh.hpp>
@@ -18,7 +18,7 @@ namespace athena
         class ModelView : public atlas::utils::Geometry
         {
         public:
-            ModelView(polygonizer::Bsoid&& soid);
+            ModelView(polygonizer::Bsoid&& soid, polygonizer::MarchingCubes&& mc);
             ModelView(ModelView&& view) = default;
             ~ModelView() = default;
 
@@ -31,8 +31,10 @@ namespace athena
             void constructLattices();
             void constructContours();
             void constructMesh();
+            void constructMCMesh();
 
             polygonizer::Bsoid mSoid;
+            polygonizer::MarchingCubes mMC;
 
             atlas::gl::VertexArrayObject mLatticeVao;
             atlas::gl::Buffer mLatticeData;
@@ -51,9 +53,16 @@ namespace athena
             std::size_t mMeshNumIndices;
             std::size_t mMeshNumVertices;
 
+            atlas::gl::VertexArrayObject mMCVao;
+            atlas::gl::Buffer mMCData;
+            atlas::gl::Buffer mMCIndices;
+            std::size_t mMCNumIndices;
+            std::size_t mMCNumVertices;
+
             bool mShowLattices;
             bool mShowContours;
             bool mShowMesh;
+            bool mShowMCMesh;
             int mRenderMode;
         };
     }

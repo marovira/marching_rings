@@ -23,8 +23,10 @@ namespace athena
 {
     namespace visualizer
     {
-        ModelView::ModelView(polygonizer::Bsoid&& soid) :
+        ModelView::ModelView(polygonizer::Bsoid&& soid, 
+            polygonizer::MarchingCubes&& mc) :
             mSoid(std::move(soid)),
+            mMC(std::move(mc)),
             mLatticeData(GL_ARRAY_BUFFER),
             mLatticeIndices(GL_ELEMENT_ARRAY_BUFFER),
             mLatticeNumIndices(0),
@@ -35,9 +37,13 @@ namespace athena
             mMeshData(GL_ARRAY_BUFFER),
             mMeshIndices(GL_ELEMENT_ARRAY_BUFFER),
             mMeshNumIndices(0),
+            mMCData(GL_ARRAY_BUFFER),
+            mMCIndices(GL_ELEMENT_ARRAY_BUFFER),
+            mMCNumIndices(0),
             mShowLattices(false),
             mShowContours(false),
             mShowMesh(false),
+            mShowMCMesh(false),
             mRenderMode(0)
         {
             using atlas::core::enumToUnderlyingType;
@@ -227,6 +233,66 @@ namespace athena
                 mMeshIndices.unBindBuffer();
                 mMeshVao.unBindVertexArray();
             }
+
+            if (mShowMCMesh)
+            {
+                mMCVao.bindVertexArray();
+                mMCIndices.bindBuffer();
+
+                if (mRenderMode == 0)
+                {
+                    auto contourIndex = enumToUnderlyingType(ShaderNames::Contour);
+                    mShaders[contourIndex].enableShaders();
+                    auto var = mUniforms["contour_renderMode"];
+
+                    glUniformMatrix4fv(mUniforms["contour_model"], 1,
+                        GL_FALSE, &mModel[0][0]);
+
+                    // Draw only vertices.
+                    glUniform1i(var, 0);
+                    glDrawArrays(GL_POINTS, 0, mMCNumVertices);
+
+                    mShaders[contourIndex].disableShaders();
+                }
+                else if (mRenderMode == 1)
+                {
+                    // Wireframe.
+                    auto contourIndex = enumToUnderlyingType(ShaderNames::Contour);
+                    mShaders[contourIndex].enableShaders();
+                    auto var = mUniforms["contour_renderMode"];
+                    glUniformMatrix4fv(mUniforms["contour_model"], 1,
+                        GL_FALSE, &mModel[0][0]);
+
+                    glUniform1i(var, 0);
+                    glDrawArrays(GL_POINTS, 0, mMCNumVertices);
+
+                    glUniform1i(var, 1);
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                    glDrawElements(GL_TRIANGLES, (GLsizei)mMCNumIndices,
+                        GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+                    mShaders[contourIndex].disableShaders();
+                }
+                else
+                {
+                    auto meshIndex = enumToUnderlyingType(ShaderNames::Mesh);
+                    mShaders[meshIndex].enableShaders();
+                    auto var = mUniforms["mesh_renderMode"];
+
+                    glUniformMatrix4fv(mUniforms["mesh_model"], 1, GL_FALSE,
+                        &mModel[0][0]);
+                    glUniform1i(var, mRenderMode);
+                    mMCVao.bindVertexArray();
+                    mMCIndices.bindBuffer();
+                    glDrawElements(GL_TRIANGLES, (GLsizei)mMCNumIndices,
+                        GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                    mShaders[meshIndex].disableShaders();
+                }
+
+                mMCIndices.unBindBuffer();
+                mMCVao.unBindVertexArray();
+            }
         }
 
         void ModelView::drawGui()
@@ -251,6 +317,11 @@ namespace athena
                 constructMesh();
             }
 
+            if (ImGui::Button("Construct MC mesh"))
+            {
+                constructMCMesh();
+            }
+
             if (ImGui::Button("Save mesh"))
             {
                 mSoid.saveMesh();
@@ -262,6 +333,7 @@ namespace athena
             ImGui::Checkbox("Show lattices", &mShowLattices);
             ImGui::Checkbox("Show contours", &mShowContours);
             ImGui::Checkbox("Show mesh", &mShowMesh);
+            ImGui::Checkbox("Show MC mesh", &mShowMCMesh);
 
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Text("Log");
@@ -440,6 +512,51 @@ namespace athena
             mMeshIndices.unBindBuffer();
             mMeshData.unBindBuffer();
             mMeshVao.unBindVertexArray();
+        }
+
+        void ModelView::constructMCMesh()
+        {
+            mMC.polygonize();
+
+            auto verts = mMC.getMesh().vertices();
+            auto normals = mMC.getMesh().normals();
+            auto idx = mMC.getMesh().indices();
+
+            mMCNumVertices = verts.size();
+            mMCNumIndices = idx.size();
+
+            std::vector<float> data;
+            for (std::size_t i = 0; i < verts.size(); ++i)
+            {
+                data.push_back(verts[i].x);
+                data.push_back(verts[i].y);
+                data.push_back(verts[i].z);
+
+                data.push_back(normals[i].x);
+                data.push_back(normals[i].y);
+                data.push_back(normals[i].z);
+            }
+
+            mMCVao.bindVertexArray();
+            mMCData.bindBuffer();
+            mMCData.bufferData(gl::size<float>(data.size()), data.data(),
+                GL_STATIC_DRAW);
+            mMCData.vertexAttribPointer(VERTICES_LAYOUT_LOCATION, 3,
+                GL_FLOAT, GL_FALSE, gl::stride<float>(6),
+                gl::bufferOffset<float>(0));
+            mMCData.vertexAttribPointer(NORMALS_LAYOUT_LOCATION, 3,
+                GL_FLOAT, GL_FALSE, gl::stride<float>(6), 
+                gl::bufferOffset<float>(3));
+            mMCVao.enableVertexAttribArray(VERTICES_LAYOUT_LOCATION);
+            mMCVao.enableVertexAttribArray(NORMALS_LAYOUT_LOCATION);
+
+            mMCIndices.bindBuffer();
+            mMCIndices.bufferData(
+                gl::size<GLuint>(idx.size()), idx.data(), GL_STATIC_DRAW);
+
+            mMCIndices.unBindBuffer();
+            mMCData.unBindBuffer();
+            mMCVao.unBindVertexArray();
         }
     }
 }

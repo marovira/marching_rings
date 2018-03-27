@@ -14,7 +14,8 @@ namespace athena
         class ModelVisualizer : public atlas::tools::ModellingScene
         {
         public:
-            ModelVisualizer(std::vector<polygonizer::Bsoid>& models);
+            ModelVisualizer(std::vector<polygonizer::Bsoid>& models,
+                std::vector<polygonizer::MarchingCubes>& modelsMC);
 
             void renderScene() override;
 

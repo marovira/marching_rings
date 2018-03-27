@@ -17,13 +17,15 @@ namespace athena
 {
     namespace visualizer
     {
-        ModelVisualizer::ModelVisualizer(std::vector<polygonizer::Bsoid>& models) :
+        ModelVisualizer::ModelVisualizer(std::vector<polygonizer::Bsoid>& models,
+            std::vector<polygonizer::MarchingCubes>& modelsMC) :
             mCurrentView(0),
             ModellingScene()
         {
-            for (auto&& model : models)
+
+            for (std::size_t i = 0; i < models.size(); ++i)
             {
-                mViews.emplace_back(std::move(model));
+                mViews.emplace_back(std::move(models[i]), std::move(modelsMC[i]));
             }
         }
 
