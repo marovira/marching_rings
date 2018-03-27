@@ -17,8 +17,24 @@ std::vector<athena::models::ModelFn> getModels()
 {
     using namespace athena::models;
     std::vector<athena::models::ModelFn> result;
-    result.push_back(makeSphere);
-    result.push_back(makePeanut);
+    //result.push_back(makeSphere);
+    //result.push_back(makePeanut);
+    //result.push_back(makeCylinder);
+    //result.push_back(makeCone);
+    result.push_back(makeTorus);
+
+    return result;
+}
+
+std::vector<athena::models::MCModelFn> getMCModels()
+{
+    using namespace athena::models;
+    std::vector<MCModelFn> result;
+    result.push_back(makeMCSphere);
+    //result.push_back(makeMCPeanut);
+    //result.push_back(makeMCCylinder);
+    //result.push_back(makeMCCone);
+    result.push_back(makeMCTorus);
 
     return result;
 }
@@ -32,10 +48,17 @@ int main()
     using atlas::utils::ScenePointer;
 
     std::vector<athena::polygonizer::Bsoid> models;
+    std::vector<athena::polygonizer::MarchingCubes> mcModels;
     auto modelFns = getModels();
+    auto mcModelFns = getMCModels();
     for (auto& modelFn : modelFns)
     {
         models.emplace_back(modelFn());
+    }
+
+    for (auto& mcFn : mcModelFns)
+    {
+        mcModels.emplace_back(mcFn());
     }
 
     atlas::gl::setGLErrorSeverity(ATLAS_GL_ERROR_SEVERITY_HIGH |
@@ -49,7 +72,7 @@ int main()
 
     Application::getInstance().createWindow(settings);
     Application::getInstance().addScene(ScenePointer(
-        new athena::visualizer::ModelVisualizer(models)));
+        new athena::visualizer::ModelVisualizer(models, mcModels)));
     Application::getInstance().runApplication();
 
     return 0;
