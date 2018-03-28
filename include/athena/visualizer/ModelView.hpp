@@ -18,6 +18,7 @@ namespace athena
         class ModelView : public atlas::utils::Geometry
         {
         public:
+            ModelView(polygonizer::Bsoid&& soid);
             ModelView(polygonizer::Bsoid&& soid, polygonizer::MarchingCubes&& mc);
             ModelView(ModelView&& view) = default;
             ~ModelView() = default;
@@ -28,6 +29,7 @@ namespace athena
             void drawGui() override;
 
         private:
+            void initShaders();
             void constructLattices();
             void constructContours();
             void constructMesh();
@@ -63,6 +65,7 @@ namespace athena
             bool mShowContours;
             bool mShowMesh;
             bool mShowMCMesh;
+            bool mHasMC;
             int mRenderMode;
         };
     }

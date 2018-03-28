@@ -23,6 +23,31 @@ namespace athena
 {
     namespace visualizer
     {
+        ModelView::ModelView(polygonizer::Bsoid&& soid) :
+            mSoid(std::move(soid)),
+            mLatticeData(GL_ARRAY_BUFFER),
+            mLatticeIndices(GL_ELEMENT_ARRAY_BUFFER),
+            mLatticeNumIndices(0),
+            mContourData(GL_ARRAY_BUFFER),
+            mContourIndices(GL_ELEMENT_ARRAY_BUFFER),
+            mContourNumIndices(0),
+            mContourNumVertices(0),
+            mMeshData(GL_ARRAY_BUFFER),
+            mMeshIndices(GL_ELEMENT_ARRAY_BUFFER),
+            mMeshNumIndices(0),
+            mMCData(GL_ARRAY_BUFFER),
+            mMCIndices(GL_ELEMENT_ARRAY_BUFFER),
+            mMCNumIndices(0),
+            mShowLattices(false),
+            mShowContours(false),
+            mShowMesh(false),
+            mShowMCMesh(false),
+            mRenderMode(0),
+            mHasMC(false)
+        {
+            initShaders();
+        }
+
         ModelView::ModelView(polygonizer::Bsoid&& soid, 
             polygonizer::MarchingCubes&& mc) :
             mSoid(std::move(soid)),
@@ -44,75 +69,10 @@ namespace athena
             mShowContours(false),
             mShowMesh(false),
             mShowMCMesh(false),
-            mRenderMode(0)
+            mRenderMode(0),
+            mHasMC(true)
         {
-            using atlas::core::enumToUnderlyingType;
-
-            // Load the lattice shaders first.
-            std::vector<gl::ShaderUnit> latticeShaders
-            {
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Lattice.vs.glsl", GL_VERTEX_SHADER },
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Lattice.fs.glsl", GL_FRAGMENT_SHADER }
-            };
-
-            // Next the contour shaders.
-            std::vector<gl::ShaderUnit> contourShaders
-            {
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Contour.vs.glsl", GL_VERTEX_SHADER },
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Contour.fs.glsl", GL_FRAGMENT_SHADER}
-            };
-
-            // Finally the mesh shaders.
-            std::vector<gl::ShaderUnit> meshShaders
-            {
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Mesh.vs.glsl", GL_VERTEX_SHADER },
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Mesh.gs.glsl", GL_GEOMETRY_SHADER },
-                { std::string(ShaderDirectory) +
-                "athena/visualizer/Mesh.fs.glsl", GL_FRAGMENT_SHADER} 
-            };
-
-            mShaders.push_back(gl::Shader(latticeShaders));
-            mShaders.push_back(gl::Shader(contourShaders));
-            mShaders.push_back(gl::Shader(meshShaders));
-
-            for (auto& shader : mShaders)
-            {
-                shader.setShaderIncludeDir(ShaderDirectory);
-                shader.compileShaders();
-                shader.linkShaders();
-            }
-
-            // Grab the lattice uniforms.
-            auto latticeIndex = enumToUnderlyingType(ShaderNames::Lattice);
-            auto var = mShaders[latticeIndex].getUniformVariable("model");
-            mUniforms.insert(UniformKey("lattice_model", var));
-
-            // Now the contour uniforms.
-            auto contourIndex = enumToUnderlyingType(ShaderNames::Contour);
-            var = mShaders[contourIndex].getUniformVariable("model");
-            mUniforms.insert(UniformKey("contour_model", var));
-
-            var = mShaders[contourIndex].getUniformVariable("renderMode");
-            mUniforms.insert(UniformKey("contour_renderMode", var));
-
-            // Finally the mesh uniforms.
-            auto meshIndex = enumToUnderlyingType(ShaderNames::Mesh);
-            var = mShaders[meshIndex].getUniformVariable("model");
-            mUniforms.insert(UniformKey("mesh_model", var));
-
-            var = mShaders[meshIndex].getUniformVariable("renderMode");
-            mUniforms.insert(UniformKey("mesh_renderMode", var));
-
-            for (auto& shader : mShaders)
-            {
-                shader.disableShaders();
-            }
+            initShaders();
         }
 
         std::string ModelView::getModelName() const
@@ -317,9 +277,12 @@ namespace athena
                 constructMesh();
             }
 
-            if (ImGui::Button("Construct MC mesh"))
+            if (mHasMC)
             {
-                constructMCMesh();
+                if (ImGui::Button("Construct MC mesh"))
+                {
+                        constructMCMesh();
+                }
             }
 
             if (ImGui::Button("Save mesh"))
@@ -353,6 +316,77 @@ namespace athena
             ImGui::Combo("Render mode", &mRenderMode, renderNames.data(),
                 ((int)renderNames.size()));
             ImGui::End();
+        }
+
+        void ModelView::initShaders()
+        {
+            using atlas::core::enumToUnderlyingType;
+
+            // Load the lattice shaders first.
+            std::vector<gl::ShaderUnit> latticeShaders
+            {
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Lattice.vs.glsl", GL_VERTEX_SHADER },
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Lattice.fs.glsl", GL_FRAGMENT_SHADER }
+            };
+
+            // Next the contour shaders.
+            std::vector<gl::ShaderUnit> contourShaders
+            {
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Contour.vs.glsl", GL_VERTEX_SHADER },
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Contour.fs.glsl", GL_FRAGMENT_SHADER}
+            };
+
+            // Finally the mesh shaders.
+            std::vector<gl::ShaderUnit> meshShaders
+            {
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Mesh.vs.glsl", GL_VERTEX_SHADER },
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Mesh.gs.glsl", GL_GEOMETRY_SHADER },
+                { std::string(ShaderDirectory) +
+                "athena/visualizer/Mesh.fs.glsl", GL_FRAGMENT_SHADER} 
+            };
+
+            mShaders.push_back(gl::Shader(latticeShaders));
+            mShaders.push_back(gl::Shader(contourShaders));
+            mShaders.push_back(gl::Shader(meshShaders));
+
+            for (auto& shader : mShaders)
+            {
+                shader.setShaderIncludeDir(ShaderDirectory);
+                shader.compileShaders();
+                shader.linkShaders();
+            }
+
+            // Grab the lattice uniforms.
+            auto latticeIndex = enumToUnderlyingType(ShaderNames::Lattice);
+            auto var = mShaders[latticeIndex].getUniformVariable("model");
+            mUniforms.insert(UniformKey("lattice_model", var));
+
+            // Now the contour uniforms.
+            auto contourIndex = enumToUnderlyingType(ShaderNames::Contour);
+            var = mShaders[contourIndex].getUniformVariable("model");
+            mUniforms.insert(UniformKey("contour_model", var));
+
+            var = mShaders[contourIndex].getUniformVariable("renderMode");
+            mUniforms.insert(UniformKey("contour_renderMode", var));
+
+            // Finally the mesh uniforms.
+            auto meshIndex = enumToUnderlyingType(ShaderNames::Mesh);
+            var = mShaders[meshIndex].getUniformVariable("model");
+            mUniforms.insert(UniformKey("mesh_model", var));
+
+            var = mShaders[meshIndex].getUniformVariable("renderMode");
+            mUniforms.insert(UniformKey("mesh_renderMode", var));
+
+            for (auto& shader : mShaders)
+            {
+                shader.disableShaders();
+            }
         }
 
         void ModelView::constructLattices()
@@ -446,7 +480,7 @@ namespace athena
             std::vector<atlas::math::Point> verts;
             std::vector<std::uint32_t> idx;
 
-#if defined(ATLAS_DEBUG) && !(ATHENA_DEBUG_CONTOURS)
+#if defined(ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
             verts = mSoid.getContour().vertices;
             idx = mSoid.getContour().indices;
             mContourNumIndices = idx.size();
