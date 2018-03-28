@@ -12,8 +12,8 @@
 #if defined ATLAS_DEBUG
 #define ATHENA_DEBUG_CONTOURS 0 
 
-#define ATHENA_DEBUG_CONTOUR_START 13
-#define ATHENA_DEBUG_CONTOUR_END 13
+#define ATHENA_DEBUG_CONTOUR_START 5
+#define ATHENA_DEBUG_CONTOUR_END 5
 
 #define ATHENA_DEBUG_CONTOUR_RANGE(i, start, end) \
 if (i < start || i > end) \
@@ -314,7 +314,7 @@ namespace athena
 
             // The contours all have the same sizes, so its just a matter of
             // connecting everything together. 
-            connectContours();
+            //connectContours();
 
             std::vector<std::vector<FieldPoint>> contours;
             i = 0;
@@ -397,7 +397,7 @@ namespace athena
                     for (auto& pt : ring)
                     {
                         mMesh.vertices().push_back(pt.value.xyz());
-                        mMesh.normals().push_back(pt.g);
+                        mMesh.normals().push_back(-pt.g);
                         ++num;
                     }
                 }
