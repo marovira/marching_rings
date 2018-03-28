@@ -18,8 +18,7 @@ namespace athena
         class ImplicitField
         {
         public:
-            ImplicitField() :
-                mFilter(softObjects)
+            ImplicitField()
             { }
 
             virtual ~ImplicitField() = default;
@@ -31,27 +30,22 @@ namespace athena
                 return b;
             }
 
-            void setFilterFunction(FilterFn const& fn)
-            {
-                mFilter = fn;
-            }
-
             virtual float eval(atlas::math::Point const& p) const
             {
-                return mFilter(sdf(p));
+                return compactField(sdf(p));
             }
 
-            virtual atlas::math::Normal grad(
-                atlas::math::Point const& p) const = 0;
+            virtual atlas::math::Normal grad(atlas::math::Point const& p) const
+            {
+                return compactGradient(sdf(p)) * sdg(p);
+            }
             virtual std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u, float  offset) const = 0;
+                atlas::math::Normal const& u) const = 0;
 
         protected:
             virtual float sdf(atlas::math::Point const& p) const = 0;
+            virtual atlas::math::Normal sdg(atlas::math::Point const& p) const = 0;
             virtual atlas::utils::BBox box() const = 0;
-
-        private:
-            FilterFn mFilter;
         };
     }
 }

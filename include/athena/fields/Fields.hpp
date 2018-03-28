@@ -17,6 +17,7 @@ namespace athena
         class ImplicitField;
         class Sphere;
         class Torus;
+        class Cone;
 
         using ImplicitFieldPtr = std::shared_ptr<ImplicitField>;
     }

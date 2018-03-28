@@ -14,7 +14,7 @@ namespace athena
         public:
             Cylinder() :
                 mRadius(1.0f),
-                mHeight(3.0f),
+                mHeight(2.0f),
                 mCentre(0.0f)
             { }
 
@@ -24,14 +24,8 @@ namespace athena
                 mCentre(centre)
             { }
 
-            atlas::math::Normal grad(atlas::math::Point const& p) const override
-            {
-                auto g = p.xz() - mCentre;
-                return { 2.0f * g.x, 0.0f, 2.0f * g.y };
-            }
-
-            std::vector<atlas::math::Point> getSeeds(atlas::math::Normal const& u,
-                float offset) const override
+            std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const override
             {
                 using atlas::math::Point;
 
@@ -41,7 +35,7 @@ namespace athena
                 auto d = glm::proj(v, glm::normalize(u));
                 auto proj = centre - d;
 
-                float radius = mRadius + offset;
+                float radius = mRadius;
                 float l = glm::length(proj - centre);
                 if (l > radius)
                 {
@@ -74,6 +68,12 @@ namespace athena
             float sdf(atlas::math::Point const& p) const override
             {
                 return glm::length(p.xz() - mCentre) - mRadius;
+            }
+
+            atlas::math::Normal sdg(atlas::math::Point const& p) const override
+            {
+                auto g = p.xz() - mCentre;
+                return { 2.0f * g.x, 0.0f, 2.0f * g.y };
             }
 
             atlas::utils::BBox box() const override

@@ -24,21 +24,15 @@ namespace athena
 
             ~Sphere() = default;
 
-
-            atlas::math::Normal grad(atlas::math::Point const& p) const override
-            {
-                return 2.0f * (p - mCentre);
-            }
-
             std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u, float offset) const override
+                atlas::math::Normal const& u) const override
             {
                 // First project the centre onto the plane.
                 auto v = mCentre - u;
                 auto d = glm::proj(v, glm::normalize(u));
                 auto proj = mCentre - d;
 
-                float radius = mRadius + offset;
+                float radius = mRadius;
                 float l = glm::length(proj - mCentre);
                 if (l > radius)
                 {
@@ -47,6 +41,8 @@ namespace athena
 
                 float rp = 
                     glm::sqrt((radius * radius) - glm::length2(proj - mCentre));
+
+                // Only move along the plane that we are currently in.
                 auto seed = proj;
                 for (int i = 0; i < 3; ++i)
                 {
@@ -64,6 +60,11 @@ namespace athena
             float sdf(atlas::math::Point const& p) const override
             {
                 return glm::length(p - mCentre) - mRadius;
+            }
+
+            atlas::math::Normal sdg(atlas::math::Point const& p) const override
+            {
+                return 2.0f * (p - mCentre);
             }
 
             atlas::utils::BBox box() const override

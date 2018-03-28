@@ -15,34 +15,21 @@ namespace athena
         {
         public:
             Torus() :
-                mInner(2.0f),
-                mOuter(1.0f),
+                mC(2.0f),
+                mA(1.0f),
                 mCentre(0.0f)
             { }
 
             Torus(float inner, float outer, atlas::math::Point const& centre) :
-                mInner(inner),
-                mOuter(outer),
+                mC(inner),
+                mA(outer),
                 mCentre(centre)
             { }
 
             ~Torus() = default;
 
-
-            atlas::math::Normal grad(atlas::math::Point const& p) const override
-            {
-                using atlas::math::Normal;
-
-                float sqrt = glm::length(p.xy() - mCentre.xy());
-                float dx = 2.0f * (mInner - sqrt) * (p.x - mCentre.x) / sqrt;
-                float dy = 2.0f * (mInner - sqrt) * (p.y - mCentre.y) / sqrt;
-                float dz = 2.0f * (p.z - mCentre.z);
-
-                return Normal(dx, dy, dz);
-            }
-
             std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u, float offset) const override
+                atlas::math::Normal const& u) const override
             {
                 using atlas::math::Point;
                 using atlas::core::leq;
@@ -53,70 +40,37 @@ namespace athena
                 auto d = glm::proj(v, glm::normalize(u));
                 auto proj = mCentre - d;
 
-                float inner = mInner + offset;
-                float outer = mOuter + offset;
+                float c = mC;
+                float a = mA;
+                float R = c + a;
+                float r = c - a;
                 float l = glm::length(proj - mCentre);
-                if (l > (inner + outer))
+                if (l > R)
                 {
                     return {};
                 }
 
                 // Check which axis we are slicing along.
-                float rp = 0.0f;
                 std::vector<Point> seeds;
-                auto translatePoint = [u](atlas::math::Point& seed, float rp)
-                {
-                    for (int i = 0; i < 3; ++i)
-                    {
-                        if (u[i] == 0.0f)
-                        {
-                            seed[i] += rp;
-                            break;
-                        }
-                    }
-                };
-
+                Point seed1 = proj, seed2 = proj;
                 if (u.y != 0.0f || u.x != 0.0f)
                 {
-                    // Both x and y behave the same way.
-                    // Check to see if we are between the two radii.
-                    if (leq(inner, l))
-                    {
-                        // We haven't reached the hole of the torus yet, so 
-                        // treat it like a sphere.
-                        rp = glm::sqrt((outer * outer) - glm::length2(proj - mCentre));
-                        Point seed = proj;
-                        translatePoint(seed, rp);
-                        seeds.push_back(seed);
-                    }
-                    else
-                    {
-                        // We are in the hole area, so we need to 
-                        // return two points.
-                        rp = glm::sqrt((inner * inner) - glm::length2(proj - mCentre));
-                        Point seed = proj;
-                        translatePoint(seed, rp);
-                        seeds.push_back(seed);
-
-                        rp *= -1.0f;
-                        seed = proj;
-                        translatePoint(seed, rp);
-                        seeds.push_back(seed);
-                    }
+                    float rp =
+                        glm::sqrt((R * R) - (l * l));
+                    int axis = (u.y != 0.0f) ? 0 : 1;
+                    seed1[axis] += rp;
+                    seed2[axis] -= rp;
                 }
-                else
+                if (u.z != 0.0f)
                 {
-                    // Slicing along the z axis.
-                    rp = glm::sqrt((outer * outer) - glm::length2(proj - mCentre));
-                    Point seed = proj;
-                    translatePoint(seed, rp);
-                    seeds.push_back(seed);
-
-                    rp = glm::sqrt((inner * inner) - glm::length2(proj - mCentre));
-                    seed = proj;
-                    translatePoint(seed, rp);
-                    seeds.push_back(seed);
+                    float rp1 = glm::sqrt((r * r) - (l * l));
+                    float rp2 = glm::sqrt((R * R) - (l * l));
+                    seed1.x += rp1;
+                    seed2.x += rp2;
                 }
+
+                seeds.push_back(seed1);
+                seeds.push_back(seed2);
 
                 return seeds;
             }
@@ -129,20 +83,32 @@ namespace athena
 
                 float root = glm::length(p.xy() - mCentre.xy());
                 float z = glm::length(p.z - mCentre.z);
-                float left = (mInner - root) * (mInner - root);
-                return left + z - (mOuter * mOuter);
+                float left = (mC - root) * (mC - root);
+                return left + z - (mA * mA);
+            }
+
+            atlas::math::Normal sdg(atlas::math::Point const& p) const override
+            {
+                using atlas::math::Normal;
+
+                float sqrt = glm::length(p.xy() - mCentre.xy());
+                float dx = -2.0f * (mC - sqrt) * (p.x - mCentre.x) / sqrt;
+                float dy = -2.0f * (mC - sqrt) * (p.y - mCentre.y) / sqrt;
+                float dz = 2.0f * (p.z - mCentre.z);
+
+                return Normal(dx, dy, dz);
             }
 
             atlas::utils::BBox box() const override
             {
                 using atlas::math::Point;
 
-                Point p = {  mInner + mOuter,  mInner + mOuter, -mOuter };
-                Point q = { -mInner - mOuter, -mInner - mOuter,  mOuter };
+                Point p = {  mC + mA,  mC + mA, -mA };
+                Point q = { -mC - mA, -mC - mA,  mA };
                 return atlas::utils::BBox(p, q);
             }
 
-            float mInner, mOuter;
+            float mC, mA;
             atlas::math::Point mCentre;
         };
     }

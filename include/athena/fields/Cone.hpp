@@ -22,15 +22,9 @@ namespace athena
                 mHeight(height)
             { }
 
-            atlas::math::Normal grad(atlas::math::Point const& p) const override
-            {
-                auto g = p.xz() - mCentre;
-                return { 2.0f * g.x, 0.0f, -2.0f * g.y };
 
-            }
-
-            std::vector<atlas::math::Point> getSeeds(atlas::math::Normal const& u,
-                float offset) const override
+            std::vector<atlas::math::Point> getSeeds(
+                atlas::math::Normal const& u) const override
             {
                 // First project the centre onto the plane.
                 auto centre = atlas::math::Point(mCentre.x, 0.0f, mCentre.y);
@@ -38,7 +32,7 @@ namespace athena
                 auto d = glm::proj(v, glm::normalize(u));
                 auto proj = centre - d;
 
-                float radius = mRadius + offset;
+                float radius = mRadius;
                 float l = glm::length(proj - centre);
                 if (l > radius)
                 {
@@ -67,6 +61,13 @@ namespace athena
                 float c = mRadius / mHeight;
 
                 return (denom / (c * c)) - (p.y * p.y);
+
+            }
+
+            atlas::math::Normal sdg(atlas::math::Point const& p) const override
+            {
+                auto g = p.xz() - mCentre;
+                return { 2.0f * g.x, 0.0f, -2.0f * g.y };
 
             }
 

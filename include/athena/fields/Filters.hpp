@@ -7,50 +7,46 @@ namespace athena
 {
     namespace fields
     {
-        inline float wyvill(float d)
+        static constexpr float radius = 1.0f;
+
+        inline float compactField(float dist)
         {
-            if (d < 0.0f)
+            if (dist < -radius)
             {
                 return 1.0f;
             }
-            else if (d > 1.0f)
-            {
-                return 0.0f;
-            }
-            else
-            {
-                float d2 = d * d;
-                float base = 1.0f - d2;
-                return base * base * base;
-            }
-        }
-
-        inline float global(float d)
-        {
-            return d;
-        }
-
-        inline float softObjects(float d)
-        {
-            constexpr float A = 4.0f / 9.0f;
-            constexpr float B = 17.0f / 9.0f;
-            constexpr float C = 22.0f / 9.0f;
-
-            if (d < 0.0f)
-            {
-                return 1.0f;
-            }
-
-            if (d > 1.0f)
+            if (dist > radius)
             {
                 return 0.0f;
             }
 
-            float d2 = d * d;
-            float d4 = d2 * d2;
-            float d6 = d4 * d2;
+            const float x = dist / radius;
+            const float x3 = x * x * x;
+            const float x5 = x3 * x * x;
+            static constexpr float A = -3.0f / 16;
+            static constexpr float B = 5.0f / 8;
+            static constexpr float C = 15.0f / 16.0f;
+            static constexpr float D = 0.5f;
 
-            return (1.0f - A * d6 + B * d4 - C * d2);
+            return (A * x5) + (B * x3) - (C * x) + D;
+        }
+
+        inline float compactGradient(float dist)
+        {
+            if (dist < -radius || dist > radius)
+            {
+                return 0.0f;
+            }
+
+            const float x = dist / radius;
+            const float x2 = x * x;
+            const float x4 = x2 * x2;
+            static constexpr float A = -15.0f / 16;
+            static constexpr float B = 15.0f / 8;
+            static constexpr float C = 15.0f / 16;
+
+            return (A * x4) + (B * x2) - C;
+
         }
     }
 }
