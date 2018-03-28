@@ -47,11 +47,15 @@ namespace athena
                 return sdf(p);
             }
 
+            atlas::math::Point grad(atlas::math::Point const& p) const override
+            {
+                return sdg(p);
+            }
+
         protected:
             virtual ImplicitOperator* cloneEmpty() const = 0;
 
             std::vector<fields::ImplicitFieldPtr> mFields;
-
         };
 
     }
