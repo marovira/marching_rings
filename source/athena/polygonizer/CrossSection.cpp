@@ -93,7 +93,7 @@ namespace athena
             // HACK: In general, sending the iso-value as the offset won't work
             // since not every function is symmetrical. It may be a good idea
             // to instead have an offset be computed based on the filter used.
-            auto seedPoints = mTree->getSeeds(mNormal, mMagic);
+            auto seedPoints = mTree->getSeeds(mNormal);
             std::vector<Voxel> seedVoxels;
             for (auto& pt : seedPoints)
             {
@@ -304,9 +304,9 @@ namespace athena
                         Point origin = createCellPoint(cPos, mGridDelta / 2.0f);
                         float originVal = mTree->eval(origin);
                         auto norm = mTree->grad(origin);
-                        norm = (originVal < mMagic) ? -norm : norm;
                         auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
                         projNorm = glm::normalize(projNorm);
+                        projNorm = (originVal > mMagic) ? -projNorm : projNorm;
 
                         // Now find the voxel that we are pointing to.
                         auto absNorm = glm::abs(projNorm);
@@ -703,8 +703,8 @@ namespace athena
                Point in = p;
                float inVal = sv.eval(in);
                auto norm = sv.grad(in);
-               norm = (inVal < mMagic) ? -norm : norm;
                auto projNorm = norm - glm::proj(norm, glm::normalize(mNormal));
+               projNorm = (inVal > mMagic) ? -projNorm : projNorm;
                projNorm = glm::normalize(projNorm);
 
                float d = delta;
