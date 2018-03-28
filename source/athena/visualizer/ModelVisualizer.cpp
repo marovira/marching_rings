@@ -4,6 +4,7 @@
 #include <atlas/utils/GUI.hpp>
 #include <atlas/core/STB.hpp>
 #include <atlas/core/Log.hpp>
+#include <atlas/core/Assert.hpp>
 
 #include <algorithm>
 #include <fstream>
@@ -22,11 +23,23 @@ namespace athena
             mCurrentView(0),
             ModellingScene()
         {
-
-            for (std::size_t i = 0; i < models.size(); ++i)
+            if (modelsMC.empty())
             {
-                mViews.emplace_back(std::move(models[i]), std::move(modelsMC[i]));
+                for (auto&& model : models)
+                {
+                    mViews.emplace_back(std::move(model));
+                }
             }
+            else
+            {
+                ATLAS_ASSERT(models.size() == modelsMC.size(),
+                    "When comparing models, the number must match.");
+                for (std::size_t i = 0; i < models.size(); ++i)
+                {
+                    mViews.emplace_back(std::move(models[i]), std::move(modelsMC[i]));
+                }
+            }
+
         }
 
         void ModelVisualizer::renderScene()
