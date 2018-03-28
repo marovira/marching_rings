@@ -34,7 +34,7 @@ namespace athena
 
             atlas::utils::BBox getTreeBox() const;
             std::vector<atlas::math::Point> getSeeds(
-                atlas::math::Normal const& u, float offset) const;
+                atlas::math::Normal const& u) const;
 
         private:
             std::vector<NodePtr> mNodes;

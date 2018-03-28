@@ -79,9 +79,9 @@ namespace athena
         }
 
         std::vector<atlas::math::Point> BlobTree::getSeeds(
-            atlas::math::Normal const& u, float offset) const
+            atlas::math::Normal const& u) const
         {
-            return mFieldTree->getSeeds(u, offset);
+            return mFieldTree->getSeeds(u);
         }
     }
 }
