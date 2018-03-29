@@ -607,19 +607,19 @@ namespace athena
                                 vertList[TriangleTable[voxelIndex][i + 0]];
                             auto normal = mTree->grad(vert);
                             mVertices.push_back(vert);
-                            mNormals.push_back(normal);
+                            mNormals.push_back(-normal);
 
                             vert = 
                                 vertList[TriangleTable[voxelIndex][i + 1]];
                             normal = mTree->grad(vert);
                             mVertices.push_back(vert);
-                            mNormals.push_back(normal);
+                            mNormals.push_back(-normal);
 
                             vert = 
                                 vertList[TriangleTable[voxelIndex][i + 2]];
                             normal = mTree->grad(vert);
                             mVertices.push_back(vert);
-                            mNormals.push_back(normal);
+                            mNormals.push_back(-normal);
                         }
                     }
                 }
