@@ -82,9 +82,9 @@ namespace athena
                 using atlas::math::Point2;
 
                 float root = glm::length(p.xy() - mCentre.xy());
-                float z = glm::length(p.z - mCentre.z);
+                float z2 = (p.z - mCentre.z) * (p.z - mCentre.z);
                 float left = (mC - root) * (mC - root);
-                return left + z - (mA * mA);
+                return left + z2 - (mA * mA);
             }
 
             atlas::math::Normal sdg(atlas::math::Point const& p) const override
