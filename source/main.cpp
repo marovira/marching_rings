@@ -10,18 +10,17 @@
 #include <atlas/utils/WindowSettings.hpp>
 #include <atlas/gl/ErrorCheck.hpp>
 
-
-#if (ATHENA_USE_GUI)
+#include <fstream>
 
 std::vector<athena::models::ModelFn> getModels()
 {
     using namespace athena::models;
     std::vector<athena::models::ModelFn> result;
     //result.push_back(makeSphere);
-    //result.push_back(makePeanut);
+    result.push_back(makePeanut);
     //result.push_back(makeCylinder);
     //result.push_back(makeCone);
-    result.push_back(makeTorus);
+    //result.push_back(makeTorus);
 
     return result;
 }
@@ -30,15 +29,16 @@ std::vector<athena::models::MCModelFn> getMCModels()
 {
     using namespace athena::models;
     std::vector<MCModelFn> result;
-    result.push_back(makeMCSphere);
-    //result.push_back(makeMCPeanut);
+    //result.push_back(makeMCSphere);
+    result.push_back(makeMCPeanut);
     //result.push_back(makeMCCylinder);
     //result.push_back(makeMCCone);
-    result.push_back(makeMCTorus);
+    //result.push_back(makeMCTorus);
 
     return result;
 }
 
+#if (ATHENA_USE_GUI)
 int main()
 {
     // Atlas using.
@@ -83,21 +83,31 @@ int main()
 int main()
 {
     INFO_LOG_V("Welcome to Athena %s", ATHENA_VERSION_STRING);
-    INFO_LOG("Building model...");
 
-    //ImplicitFieldPtr sphere = std::make_shared<Sphere>();
-    //BlobTree tree;
-    //tree.insertField(sphere);
-    //tree.insertNodeTree({ {-1} });
+    auto modelFns = getModels();
+    auto mcModelFns = getMCModels();
 
-    //INFO_LOG("Model done!");
-    //INFO_LOG("Starting polygonization...");
-    //Bsoid soid;
-    //soid.setModel(tree);
-    //soid.setName("sphere");
-    //soid.polygonize(4, 8);
-    //soid.saveCubicLattice();
-    //INFO_LOG("Polygonization done!");
+    std::fstream file("summary.txt", std::fstream::out);
+
+    for (std::size_t i = 0; i < modelFns.size(); ++i)
+    {
+        INFO_LOG_V("Polygonizing model %d", i + 1);
+        auto soid = modelFns[i]();
+        soid.polygonize();
+        std::string log = soid.getLog();
+        file << log;
+        soid.saveMesh();
+
+        auto mc = mcModelFns[i]();
+        mc.polygonize();
+        log = mc.getLog();
+        file << "\n";
+        file << log;
+        mc.saveMesh();
+    }
+
+    file.close();
+
     return 0;
 }
 
