@@ -1,5 +1,7 @@
 #include "athena/polygonizer/MarchingCubes.hpp"
 
+#include <atlas/core/Timer.hpp>
+
 #include <cinttypes>
 #include <numeric>
 
@@ -359,11 +361,36 @@ namespace athena
         void MarchingCubes::polygonize()
         {
             using atlas::utils::Mesh;
+            using atlas::core::Timer;
 
-            constructGrid();
-            createTriangles();
+            Timer<float> global;
+
+            global.start();
+
+            mLog << "Grid construction.\n";
+            mLog << "#===========================#\n";
+            {
+                Timer<float> section;
+                section.start();
+                constructGrid();
+                mLog << "Constructed grid in " << section.elapsed() << " seconds\n";
+            }
+
+            mLog << "Triangle generation.\n";
+            mLog << "#===========================#\n";
+            {
+                Timer<float> section;
+                section.start();
+                createTriangles();
+                mLog << "Generated triangles in " << section.elapsed() << " seconds\n";
+            }
 
             Mesh::fromTriangleSoup(mVertices, mIndices, mMesh, mNormals);
+
+            mLog << "\nSummary:\n";
+            mLog << "#===========================#\n";
+            mLog << "Total runtime: " << global.elapsed() << " seconds\n";
+            mLog << "Total vertices generated: " << mMesh.vertices().size() << "\n";
         }
 
         atlas::utils::Mesh& MarchingCubes::getMesh()
