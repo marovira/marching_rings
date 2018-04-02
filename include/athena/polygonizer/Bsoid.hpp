@@ -43,6 +43,7 @@ namespace athena
             void constructLattices();
             void constructContours();
             void constructMesh();
+            void polygonize();
 
             Lattice const& getLattice() const;
             Contour const& getContour() const;

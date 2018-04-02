@@ -12,8 +12,8 @@
 #if defined ATLAS_DEBUG
 #define ATHENA_DEBUG_CONTOURS 0 
 
-#define ATHENA_DEBUG_CONTOUR_START 5
-#define ATHENA_DEBUG_CONTOUR_END 5
+#define ATHENA_DEBUG_CONTOUR_START 8
+#define ATHENA_DEBUG_CONTOUR_END 8
 
 #define ATHENA_DEBUG_CONTOUR_RANGE(i, start, end) \
 if (i < start || i > end) \
@@ -330,6 +330,103 @@ namespace athena
             }
 
             mContour.makeContour(contours);
+        }
+
+        void Bsoid::polygonize()
+        {
+            using atlas::core::Timer;
+
+            Timer<float> global;
+
+            global.start();
+            mLog << "Lattice generation.\n";
+            mLog << "#===========================#\n";
+            // Generate lattices.
+            {
+                Timer<float> step;
+                Timer<float> part;
+                step.start();
+                int i = 0;
+                for (auto& section : mCrossSections)
+                {
+                    part.start();
+                    section->constructLattice();
+                    auto duration = part.elapsed();
+                    mLog << "Generated lattice " << i << " in: " << duration <<
+                        " seconds.\n";
+                    ++i;
+                }
+
+                auto stepElapsed = step.elapsed();
+                mLog << "Total lattice generation time: " << stepElapsed 
+                    << " seconds.\n";
+            }
+
+            mLog << "\nContour generation.\n";
+            mLog << "#===========================#\n";
+
+            // Generate contours.
+            {
+                Timer<float> step;
+                Timer<float> part;
+                step.start();
+                int i = 0;
+                for (auto& section : mCrossSections)
+                {
+                    part.start();
+                    section->constructContour();
+                    auto numContours = section->getContour().size();
+                    auto duration = part.elapsed();
+                    mLog << "Generated  " << numContours << " for cross-section " 
+                        << i << " in: " << duration <<
+                        " seconds.\n";
+                    ++i;
+                }
+
+                auto stepElapsed = step.elapsed();
+                mLog << "Total contour generation time: " << stepElapsed 
+                    << " seconds.\n";
+            }
+
+            mLog << "\nMesh generation.\n";
+            mLog << "#===========================#\n";
+            {
+                Timer<float> step;
+                Timer<float> part;
+
+                step.start();
+
+                std::size_t size = 0;
+                for (auto& section : mCrossSections)
+                {
+                    if (size < section->getLargestContourSize())
+                    {
+                        size = section->getLargestContourSize();
+                    }
+                }
+
+                int i = 0;
+                for (auto& section : mCrossSections)
+                {
+                    part.start();
+                    section->resizeContours(size);
+                    
+                    auto elapsed = part.elapsed();
+                    mLog << "Resized cross-section " << i << " in " << elapsed <<
+                        " seconds.\n";
+                    i++;
+                }
+
+                connectContours();
+
+                auto stepElapsed = step.elapsed();
+                mLog << "Mesh generated in " << stepElapsed << " seconds.\n";
+            }
+
+            mLog << "\nSummary:\n";
+            mLog << "#===========================#\n";
+            mLog << "Total runtime: " << global.elapsed() << " seconds\n";
+            mLog << "Total vertices generated: " << mMesh.vertices().size() << "\n";
         }
 
         Lattice const& Bsoid::getLattice() const
