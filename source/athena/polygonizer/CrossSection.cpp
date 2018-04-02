@@ -687,7 +687,7 @@ namespace athena
 
            auto& contour = mContours[idx];
 
-#if defined(ATLAS_DEBUG) && !(ATHENA_DEBUG_CONTOURS)
+#if !(ATHENA_DEBUG_CONTOURS)
            auto pushToSurface = 
                [this, contour](Point const& p, std::size_t i, float delta)
            {
