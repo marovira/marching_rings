@@ -32,10 +32,19 @@ if (WIN32)
     if (ATHENA_COMPILER_MSVC)
         add_definitions(
             -wd4201     # nonstandard extension used: nameless struct/union.
-            -D_CERT_SECURE_NO_WARNINGS
+            -D_CRT_SECURE_NO_WARNINGS
             )
 
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall /std:c++17")
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /ZI")
+    elseif(ATHENA_COMPILER_INTEL)
+        add_definitions(
+            -wd4201
+            -wd3280
+            -D_CRT_SECURE_NO_WARNINGS
+            )
+
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall /Qstd=c++17")
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /ZI")
     endif()
 else()
