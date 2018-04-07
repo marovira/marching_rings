@@ -1,4 +1,5 @@
 #include "athena/polygonizer/Bsoid.hpp"
+#include "athena/polygonizer/BranchingManager.hpp"
 
 #include <atlas/core/Timer.hpp>
 #include <atlas/core/Macros.hpp>
@@ -35,8 +36,8 @@ namespace athena
         Bsoid::Bsoid(tree::BlobTree const& model, std::string const& name,
             float isoValue) :
             mTree(std::make_unique<tree::BlobTree>(model)),
-            mName(name),
-            mMagic(isoValue)
+            mMagic(isoValue),
+            mName(name)
         { }
 
         Bsoid::Bsoid(Bsoid&& b) :
@@ -44,10 +45,10 @@ namespace athena
             mTree(std::move(b.mTree)),
             mCrossSectionDelta(b.mCrossSectionDelta),
             mCrossSections(std::move(b.mCrossSections)),
-            mLog(std::move(b.mLog)),
             mMesh(std::move(b.mMesh)),
-            mName(b.mName),
-            mMagic(b.mMagic)
+            mMagic(b.mMagic),
+            mLog(std::move(b.mLog)),
+            mName(b.mName)
         { }
 
         void Bsoid::setModel(tree::BlobTree const& model)
@@ -301,6 +302,7 @@ namespace athena
             // Now that we have it, lets resize all of the contours. Again
             // this can be done in parallel.
             int i = 0;
+            BranchingManager manager;
             for (auto& section : mCrossSections)
             {
 #if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
@@ -308,13 +310,11 @@ namespace athena
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
                 section->resizeContours(size);
+                manager.insertContours(section->getContour());
                 ++i;
             }
 
-
-            // The contours all have the same sizes, so its just a matter of
-            // connecting everything together. 
-            //connectContours();
+            mMesh = manager.connectContours();
 
             std::vector<std::vector<FieldPoint>> contours;
             i = 0;
