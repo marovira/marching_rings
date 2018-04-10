@@ -1,6 +1,7 @@
 #include "athena/polygonizer/BranchingManager.hpp"
 
 #include <atlas/core/Assert.hpp>
+#include <atlas/core/Constants.hpp>
 
 namespace athena
 {
@@ -51,7 +52,7 @@ namespace athena
                     }
                     else
                     {
-                        ATLAS_ASSERT(false, "Multiple branches isn't solved yet.");
+                        multiBranch(top, bottom);
                     }
                 }
                 else
@@ -78,6 +79,40 @@ namespace athena
                 mMesh.indices().push_back(bottomRing[(i + 1) % size]);
                 mMesh.indices().push_back(topRing[(i + 1) % size]);
                 mMesh.indices().push_back(topRing[i]);
+            }
+        }
+
+        void BranchingManager::multiBranch(Slice const& top, Slice const& bottom)
+        {
+            // The idea is the following: we basically connect each contour
+            // with the one that is closest (geometrically) on the following
+            // slice. Now admittedly a first implementation will run in O(n^2),
+            // but I'm sure there's a faster way of doing this.
+            
+            std::vector<std::size_t> doneContours;
+            for (auto& topContour : top)
+            {
+                auto topPt = mMesh.vertices()[topContour[0]];
+                std::size_t index = 0;
+                float distance = atlas::core::infinity();
+                for (std::size_t i = 0; i < bottom.size(); ++i)
+                {
+                    auto bottomPt = mMesh.vertices()[bottom[i][0]];
+                    auto d = glm::distance(topPt, bottomPt);
+                    if (d < distance && 
+                        std::find(doneContours.begin(), doneContours.end(), i) == doneContours.end())
+                    {
+                        distance = d;
+                        index = i;
+                    }
+                }
+
+                // At this point we now have the index of the minimal distance,
+                // so we create two dummy slices and send them to be linked.
+                Slice t{ topContour };
+                Slice b{ bottom[index] };
+                singleBranch(t, b);
+                doneContours.push_back(index);
             }
         }
     }
