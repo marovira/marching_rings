@@ -203,7 +203,7 @@ namespace athena
             tree.insertFieldTree(torus);
 
             Bsoid soid(tree, "torus");
-            soid.setSlicingAxis(SlicingAxes::YAxis);
+            soid.setSlicingAxis(SlicingAxes::ZAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
             soid.makeCrossSections(std::get<1>(currentResolution),
                 std::get<2>(currentResolution));
