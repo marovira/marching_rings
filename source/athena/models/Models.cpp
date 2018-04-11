@@ -35,7 +35,7 @@ namespace athena
         static const MCResolution midResolutionMC = { 32, 16, 16 };
         static const MCResolution highResolutionMC = { 64, 32, 32 };
 
-        constexpr Resolution currentResolution = midResolution;
+        constexpr Resolution currentResolution = highResolution;
         static const MCResolution currentResolutionMC = midResolutionMC;
 
         polygonizer::Bsoid makeSphere()
@@ -203,7 +203,7 @@ namespace athena
             tree.insertFieldTree(torus);
 
             Bsoid soid(tree, "torus");
-            soid.setSlicingAxis(SlicingAxes::ZAxis);
+            soid.setSlicingAxis(SlicingAxes::YAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
             soid.makeCrossSections(std::get<1>(currentResolution),
                 std::get<2>(currentResolution));
