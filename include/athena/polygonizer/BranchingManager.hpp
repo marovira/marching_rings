@@ -25,6 +25,7 @@ namespace athena
             using Slice = std::vector<std::vector<std::uint32_t>>;
 
             void singleBranch(Slice const& top, Slice const& bottom);
+            void manyToManyBranch(Slice const& top, Slice const& bottom);
             void multiBranch(Slice const& top, Slice const& bottom);
 
             std::vector<Slice> mSlices;

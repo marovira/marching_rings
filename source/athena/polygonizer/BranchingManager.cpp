@@ -52,12 +52,12 @@ namespace athena
                     }
                     else
                     {
-                        multiBranch(top, bottom);
+                        manyToManyBranch(top, bottom);
                     }
                 }
                 else
                 {
-                    ATLAS_ASSERT(false, "Branching is not allowed yet.");
+                    //multiBranch(top, bottom);
                 }
             }
 
@@ -82,12 +82,35 @@ namespace athena
             }
         }
 
-        void BranchingManager::multiBranch(Slice const& top, Slice const& bottom)
+        void BranchingManager::manyToManyBranch(Slice const& top, Slice const& bottom)
         {
             // The idea is the following: we basically connect each contour
             // with the one that is closest (geometrically) on the following
             // slice. Now admittedly a first implementation will run in O(n^2),
             // but I'm sure there's a faster way of doing this.
+
+            // Now the problem with the above approach is that it relies on us
+            // being able to compute the intersection and union of the two mesh 
+            // strips which could get expensive (and difficult). That said though,
+            // it tries to emulate the case of CT data, which doesn't have a whole
+            // lot of information on the underlying surface. So an alternative
+            // formulation could be this (and yes, I'm well aware that this may
+            // not work for more convoluted branches, but bear with me): 
+            // compute the centre of gravity of each of the contours in the 
+            // branch and then compute their intersection (in the case of just 
+            // two contours take the midpoint). Then project that point up into
+            // the other slice. If I'm right (I know I could be wrong but whatever),
+            // then the point should be inside the surface and have a value less
+            // than 0. So with that in mind we can perform linear interpolation
+            // to obtain an approximation for the "saddle" point (or at least a
+            // point in the vicinity of the saddle). Once we have that, take
+            // the "height" and create a new slice there. The trick is to ensure
+            // that the "saddle" is included in the contour(s) that are generated
+            // and then just connect them (if the slice generates disjoint
+            // contours then we can just connect them using the point). The 
+            // unsolved part of all this is how the new slice would get joined
+            // with the branching slice, since the number of vertices won't
+            // match, but that's another story.
             
             std::vector<std::size_t> doneContours;
             for (auto& topContour : top)
@@ -113,6 +136,27 @@ namespace athena
                 Slice b{ bottom[index] };
                 singleBranch(t, b);
                 doneContours.push_back(index);
+            }
+        }
+
+        void BranchingManager::multiBranch(Slice const& t, Slice const& b)
+        {
+            // First figure out which slice is the one with the least
+            Slice top = (t.size() < b.size()) ? t : b;
+            Slice bottom = (t.size() < b.size()) ? b : t;
+
+            // Now, for each contour in the top slice, connect it with every
+            // contour in the bottom slice.
+            for (auto& contour : top)
+            {
+                for (auto& ring : bottom)
+                {
+                    // Dummy code to see the intersection. We may need to create
+                    // a separate mesh to process it.
+                    Slice s1{ contour };
+                    Slice s2{ ring };
+                    singleBranch(s1, s2);
+                }
             }
         }
     }
