@@ -70,13 +70,35 @@ namespace athena
             auto bottomRing = bottom[0];
             auto size = topRing.size();
 
+            // This "fixes" the twisting that was occuring in the quads.
+            // The idea is the following: since the contours can't vary too much
+            // between layers, then they will be roughly offset by a couple of
+            // voxels tops (in theory). So in reality what needs to be done is 
+            // just to find the point in the lower layer that has the shortest
+            // distance with the first vertex of the upper layer. This will
+            // ensure that all of the quads are aligned correctly. Now a somewhat
+            // better way of doing this would be to check a relatively small 
+            // neighbourhood around the first vertex in the lower layer, since
+            // that will save up in search time.
+            auto seed = mMesh.vertices()[topRing[0]];
+            float distance = atlas::core::infinity();
+            std::size_t start = 0;
+            for (std::size_t i = 0; i < size; ++i)
+            {
+                if (glm::distance(mMesh.vertices()[bottomRing[i]], seed) < distance)
+                {
+                    distance = glm::distance(mMesh.vertices()[bottomRing[i]], seed);
+                    start = i;
+                }
+            }
+
             for (std::size_t i = 0; i < size; ++i)
             {
                 mMesh.indices().push_back(topRing[i]);
-                mMesh.indices().push_back(bottomRing[i]);
-                mMesh.indices().push_back(bottomRing[(i + 1) % size]);
+                mMesh.indices().push_back(bottomRing[(start + i) % size]);
+                mMesh.indices().push_back(bottomRing[(start + i + 1) % size]);
 
-                mMesh.indices().push_back(bottomRing[(i + 1) % size]);
+                mMesh.indices().push_back(bottomRing[(start + i + 1) % size]);
                 mMesh.indices().push_back(topRing[(i + 1) % size]);
                 mMesh.indices().push_back(topRing[i]);
             }
