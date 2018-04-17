@@ -23,14 +23,14 @@ namespace athena
             atlas::math::Point const& min, atlas::math::Point const& max, 
             std::uint32_t gridSize, std::uint32_t svSize, float isoValue,
             tree::BlobTree* tree) :
-            mAxis(axis),
             mMin(min),
             mMax(max),
             mGridSize(gridSize),
             mSvSize(svSize),
+            mMagic(isoValue),
             mTree(tree),
-            mLargestContourSize(0),
-            mMagic(isoValue)
+            mAxis(axis),
+            mLargestContourSize(0)
         {
             using atlas::math::Normal;
 
