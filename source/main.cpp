@@ -17,10 +17,10 @@ std::vector<athena::models::ModelFn> getModels()
     using namespace athena::models;
     std::vector<athena::models::ModelFn> result;
     //result.push_back(makeSphere);
-    result.push_back(makePeanut);
+    //result.push_back(makePeanut);
     //result.push_back(makeCylinder);
     //result.push_back(makeCone);
-    //result.push_back(makeTorus);
+    result.push_back(makeTorus);
 
     return result;
 }
@@ -30,7 +30,7 @@ std::vector<athena::models::MCModelFn> getMCModels()
     using namespace athena::models;
     std::vector<MCModelFn> result;
     //result.push_back(makeMCSphere);
-    result.push_back(makeMCPeanut);
+    //result.push_back(makeMCPeanut);
     //result.push_back(makeMCCylinder);
     //result.push_back(makeMCCone);
     //result.push_back(makeMCTorus);

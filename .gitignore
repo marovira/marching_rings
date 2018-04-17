@@ -1,5 +1,6 @@
 # Build folders.
 build/
+build-intel/
 
 # Generated files
 include/athena/Athena.hpp

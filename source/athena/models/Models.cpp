@@ -35,7 +35,7 @@ namespace athena
         static const MCResolution midResolutionMC = { 32, 16, 16 };
         static const MCResolution highResolutionMC = { 64, 32, 32 };
 
-        constexpr Resolution currentResolution = midResolution;
+        constexpr Resolution currentResolution = highResolution;
         static const MCResolution currentResolutionMC = midResolutionMC;
 
         polygonizer::Bsoid makeSphere()
