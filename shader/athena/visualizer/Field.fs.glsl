@@ -1,0 +1,54 @@
+#version 450 core
+
+in VertexData
+{
+    float value;
+    vec3 gradient;
+} inData;
+
+out vec4 fragColour;
+
+uniform int renderMode;
+
+vec4 colourField(float value)
+{
+    vec4 field = vec4(0, 0, 0, 1);
+    if (value > 0.45 && value < 0.55)
+    {
+        field.r = 1;
+    }
+    else if (value < 0.9 || value > 0.1)
+    {
+        field.r = value;
+    }
+
+    return field;
+}
+
+vec4 colourGradient(vec3 gradient)
+{
+    vec4 grad = vec4(0, 0, 0, 1);
+    float l = clamp(length(gradient), 0, 1);
+    if (l < 0.1)
+    {
+        grad.b = 1;
+    }
+    else
+    {
+        grad.b = l;
+    }
+
+    return grad;
+}
+
+void main()
+{
+    if (renderMode == 0)
+    {
+        fragColour = colourField(inData.value);
+    }
+    else
+    {
+        fragColour = colourGradient(inData.gradient);
+    }
+}
