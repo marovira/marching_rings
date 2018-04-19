@@ -47,7 +47,7 @@ namespace athena
                 return sdf(p);
             }
 
-            atlas::math::Point grad(atlas::math::Point const& p) const override
+            atlas::math::Normal grad(atlas::math::Point const& p) const override
             {
                 return sdg(p);
             }

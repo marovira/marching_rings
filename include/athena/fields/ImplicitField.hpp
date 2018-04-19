@@ -39,6 +39,13 @@ namespace athena
             {
                 return compactGradient(sdf(p)) * sdg(p);
             }
+
+            virtual atlas::math::Normal naturalGradient(
+                atlas::math::Point const& p) const
+            {
+                return sdg(p);
+            }
+
             virtual std::vector<atlas::math::Point> getSeeds(
                 atlas::math::Normal const& u) const = 0;
 
