@@ -20,13 +20,16 @@ namespace athena
     {
         ModelVisualizer::ModelVisualizer(std::vector<polygonizer::Bsoid>& models,
             std::vector<polygonizer::MarchingCubes>& modelsMC) :
-            mCurrentView(0),
-            ModellingScene()
+            ModellingScene(),
+            mCurrentView(0)
         {
             if (modelsMC.empty())
             {
                 for (auto&& model : models)
                 {
+                    mFieldViews.emplace_back(model.tree());
+                    mFieldViews.back().constructSlices(model.numCrossSections(),
+                        model.crossSectionDelta(), model.axis());
                     mViews.emplace_back(std::move(model));
                 }
             }
@@ -68,6 +71,10 @@ namespace athena
                 mGrid.renderGeometry(mProjection, mView);
             }
 
+            // Now render the view.
+            mViews[mCurrentView].renderGeometry();
+            mFieldViews[mCurrentView].renderGeometry();
+
             // Global HUD.
             ImGui::SetNextWindowSize(ImVec2(350, 140), ImGuiSetCond_FirstUseEver);
             ImGui::Begin("Global HUD");
@@ -103,11 +110,9 @@ namespace athena
 
             // Render the GUI for the current view.
             mViews[mCurrentView].drawGui();
+            mFieldViews[mCurrentView].drawGui();
 
             ImGui::Render();
-
-            // Now render the view.
-            mViews[mCurrentView].renderGeometry();
         }
 
         void ModelVisualizer::takeSnapshot(std::string const& name)
