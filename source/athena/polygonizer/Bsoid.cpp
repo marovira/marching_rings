@@ -42,8 +42,10 @@ namespace athena
 
         Bsoid::Bsoid(Bsoid&& b) :
             mLattice(std::move(b.mLattice)),
+            mContour(std::move(b.mContour)),
             mTree(std::move(b.mTree)),
             mCrossSectionDelta(b.mCrossSectionDelta),
+            mAxis(b.mAxis),
             mCrossSections(std::move(b.mCrossSections)),
             mMesh(std::move(b.mMesh)),
             mMagic(b.mMagic),
@@ -117,7 +119,22 @@ namespace athena
 
         std::size_t Bsoid::numCrossSections() const
         {
-            return 0;
+            return mCrossSections.size();
+        }
+
+        float Bsoid::crossSectionDelta() const
+        {
+            return mCrossSectionDelta;
+        }
+
+        SlicingAxes Bsoid::axis() const
+        {
+            return mAxis;
+        }
+
+        tree::BlobTree* Bsoid::tree() const
+        {
+            return mTree.get();
         }
 
         void Bsoid::makeCrossSections(std::uint32_t gridSize, 

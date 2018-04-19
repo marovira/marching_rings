@@ -37,6 +37,9 @@ namespace athena
             void setCrossSectionDelta(float delta);
             void setNumCrossSections(std::size_t num);
             std::size_t numCrossSections() const;
+            float crossSectionDelta() const;
+            SlicingAxes axis() const;
+            tree::BlobTree* tree() const;
 
             void makeCrossSections(std::uint32_t gridSize, std::uint32_t svSize);
 
