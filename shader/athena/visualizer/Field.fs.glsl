@@ -4,6 +4,7 @@ in VertexData
 {
     float value;
     vec3 gradient;
+    vec3 scaledGrad;
 } inData;
 
 out vec4 fragColour;
@@ -47,8 +48,12 @@ void main()
     {
         fragColour = colourField(inData.value);
     }
-    else
+    else if (renderMode == 1)
     {
         fragColour = colourGradient(inData.gradient);
+    }
+    else
+    {
+        fragColour = colourGradient(inData.scaledGrad);
     }
 }
