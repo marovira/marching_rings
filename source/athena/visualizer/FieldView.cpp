@@ -46,24 +46,28 @@ namespace athena
             Point gridDelta = (max - min) / static_cast<float>(gridSize);
             Point delta(0.0f);
             glm::u32vec2 axisMask;
+            Point plane(0.0f);
             switch (axis)
             {
             case SlicingAxes::XAxis:
                 delta.x = sliceDelta;
                 gridDelta.x = 0.0f;
                 axisMask = { 1, 2 };
+                plane.x = min.x;
                 break;
 
             case SlicingAxes::YAxis:
                 delta.y = sliceDelta;
                 gridDelta.y = 0.0f;
                 axisMask = { 0, 2 };
+                plane.y = min.y;
                 break;
 
             case SlicingAxes::ZAxis:
                 delta.z = sliceDelta;
                 gridDelta.z = 0.0f;
                 axisMask = { 0, 1 };
+                plane.z = min.z;
                 break;
             }
 
@@ -81,21 +85,35 @@ namespace athena
                             start[axisMask.x] + x * gridDelta[axisMask.x];
                         pt[axisMask.y] = 
                             start[axisMask.y] + y * gridDelta[axisMask.y];
+
                         float f = mTree->eval(pt);
-                        auto g = mTree->grad(pt);
+                        auto naturalGrad = mTree->naturalGradient(pt);
+                        auto gradient = mTree->grad(pt);
+
+                        // Project the gradient.
+                        auto projGrad = naturalGrad - 
+                            glm::proj(naturalGrad, glm::normalize(plane));
+                        auto projNaturalGrad = gradient - glm::proj(gradient,
+                            glm::normalize(plane));
+
 
                         data.push_back(pt.x);
                         data.push_back(pt.y);
                         data.push_back(pt.z);
                         data.push_back(f);
 
-                        data.push_back(g.x);
-                        data.push_back(g.y);
-                        data.push_back(g.z);
+                        data.push_back(projGrad.x);
+                        data.push_back(projGrad.y);
+                        data.push_back(projGrad.z);
+
+                        data.push_back(projNaturalGrad.x);
+                        data.push_back(projNaturalGrad.y);
+                        data.push_back(projNaturalGrad.z);
                         mNumVertices++;
                     }
                 }
                 height += delta;
+                plane += delta;
             }
 
             std::vector<GLuint> indices;
@@ -133,14 +151,18 @@ namespace athena
             mSliceData.bufferData(gl::size<float>(data.size()), data.data(),
                 GL_STATIC_DRAW);
             mSliceData.vertexAttribPointer(VERTICES_LAYOUT_LOCATION, 4,
-                GL_FLOAT, GL_FALSE, gl::stride<float>(7),
+                GL_FLOAT, GL_FALSE, gl::stride<float>(10),
                 gl::bufferOffset<float>(0));
             mSliceData.vertexAttribPointer(NORMALS_LAYOUT_LOCATION, 3,
-                GL_FLOAT, GL_FALSE, gl::stride<float>(7),
+                GL_FLOAT, GL_FALSE, gl::stride<float>(10),
                 gl::bufferOffset<float>(4));
+            mSliceData.vertexAttribPointer(GRADIENT_LAYOUT_LOCATION, 3,
+                GL_FLOAT, GL_FALSE, gl::stride<float>(10),
+                gl::bufferOffset<float>(7));
 
             mVao.enableVertexAttribArray(VERTICES_LAYOUT_LOCATION);
             mVao.enableVertexAttribArray(NORMALS_LAYOUT_LOCATION);
+            mVao.enableVertexAttribArray(GRADIENT_LAYOUT_LOCATION);
 
             mSliceIndices.bindBuffer();
             mSliceIndices.bufferData(
@@ -195,7 +217,8 @@ namespace athena
             ImGui::Combo("Cross-section", &mSelectedSlice, sliceNames.data(),
                 ((int)mNumSlices));
 
-            std::vector<const char*> renderNames = { "Field", "Gradient" };
+            std::vector<const char*> renderNames = { "Field", "Gradient",
+                "Scaled gradient" };
             ImGui::Combo("Render mode", &mRenderMode, renderNames.data(),
                 ((int)renderNames.size()));
             ImGui::End();
