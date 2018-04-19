@@ -8,6 +8,14 @@
 #include <cinttypes>
 #include <array>
 
+#if defined(max)
+#undef max
+#endif
+
+#if defined(min)
+#undef min
+#endif
+
 namespace athena
 {
     namespace polygonizer
