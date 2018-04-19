@@ -28,6 +28,7 @@ namespace athena
 
             float eval(atlas::math::Point const& p) const;
             atlas::math::Normal grad(atlas::math::Point const& p) const;
+            atlas::math::Normal naturalGradient(atlas::math::Point const& p) const;
 
             fields::ImplicitFieldPtr getSubTree(
                 atlas::utils::BBox const& box) const;

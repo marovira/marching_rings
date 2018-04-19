@@ -67,6 +67,11 @@ namespace athena
             return mFieldTree->grad(p);
         }
 
+        atlas::math::Normal BlobTree::naturalGradient(atlas::math::Point const& p) const
+        {
+            return mFieldTree->naturalGradient(p);
+        }
+
         fields::ImplicitFieldPtr BlobTree::getSubTree(
             atlas::utils::BBox const& box) const
         {
