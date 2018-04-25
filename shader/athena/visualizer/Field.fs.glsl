@@ -14,7 +14,7 @@ uniform int renderMode;
 vec4 colourField(float value)
 {
     vec4 field = vec4(0, 0, 0, 1);
-    if (value > 0.45 && value < 0.55)
+    if (value > 0.495 && value < 0.505)
     {
         field.r = 1;
     }
