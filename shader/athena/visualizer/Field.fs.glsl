@@ -4,7 +4,7 @@ in VertexData
 {
     float value;
     vec3 gradient;
-    vec3 scaledGrad;
+    vec3 naturalGrad;
 } inData;
 
 out vec4 fragColour;
@@ -32,7 +32,7 @@ vec4 colourGradient(vec3 gradient)
     float l = clamp(length(gradient), 0, 1);
     if (l < 0.1)
     {
-        grad.b = 1;
+        grad.g = 1;
     }
     else
     {
@@ -54,6 +54,6 @@ void main()
     }
     else
     {
-        fragColour = colourGradient(inData.scaledGrad);
+        fragColour = colourGradient(inData.naturalGrad);
     }
 }

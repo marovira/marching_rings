@@ -12,7 +12,7 @@ out VertexData
 {
     float value;
     vec3 gradient;
-    vec3 scaledGrad;
+    vec3 naturalGrad;
 } outData;
 
 void main()
@@ -20,5 +20,5 @@ void main()
     gl_Position = projection * view * model * vec4(position.xyz, 1.0);
     outData.gradient = normal;
     outData.value = position.w;
-    outData.scaledGrad = gradient;
+    outData.naturalGrad = gradient;
 }
