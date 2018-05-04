@@ -91,10 +91,10 @@ namespace athena
                         auto gradient = mTree->grad(pt);
 
                         // Project the gradient.
-                        auto projGrad = naturalGrad - 
+                        auto projGrad = gradient - 
+                            glm::proj(gradient, glm::normalize(plane));
+                        auto projNaturalGrad = naturalGrad - 
                             glm::proj(naturalGrad, glm::normalize(plane));
-                        auto projNaturalGrad = gradient - glm::proj(gradient,
-                            glm::normalize(plane));
 
 
                         data.push_back(pt.x);
@@ -218,7 +218,7 @@ namespace athena
                 ((int)mNumSlices));
 
             std::vector<const char*> renderNames = { "Field", "Gradient",
-                "Scaled gradient" };
+                "Natural gradient" };
             ImGui::Combo("Render mode", &mRenderMode, renderNames.data(),
                 ((int)renderNames.size()));
             ImGui::End();
