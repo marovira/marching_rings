@@ -87,15 +87,11 @@ namespace athena
                             start[axisMask.y] + y * gridDelta[axisMask.y];
 
                         float f = mTree->eval(pt);
-                        auto naturalGrad = mTree->naturalGradient(pt);
-                        auto gradient = mTree->grad(pt);
+                        auto grad = mTree->naturalGradient(pt);
 
                         // Project the gradient.
-                        auto projGrad = gradient - 
-                            glm::proj(gradient, glm::normalize(plane));
-                        auto projNaturalGrad = naturalGrad - 
-                            glm::proj(naturalGrad, glm::normalize(plane));
-
+                        auto projGrad = grad -
+                            glm::proj(grad, glm::normalize(plane));
 
                         data.push_back(pt.x);
                         data.push_back(pt.y);
@@ -105,11 +101,6 @@ namespace athena
                         data.push_back(projGrad.x);
                         data.push_back(projGrad.y);
                         data.push_back(projGrad.z);
-
-                        data.push_back(projNaturalGrad.x);
-                        data.push_back(projNaturalGrad.y);
-                        data.push_back(projNaturalGrad.z);
-                        mNumVertices++;
                     }
                 }
                 height += delta;
@@ -151,18 +142,14 @@ namespace athena
             mSliceData.bufferData(gl::size<float>(data.size()), data.data(),
                 GL_STATIC_DRAW);
             mSliceData.vertexAttribPointer(VERTICES_LAYOUT_LOCATION, 4,
-                GL_FLOAT, GL_FALSE, gl::stride<float>(10),
+                GL_FLOAT, GL_FALSE, gl::stride<float>(7),
                 gl::bufferOffset<float>(0));
             mSliceData.vertexAttribPointer(NORMALS_LAYOUT_LOCATION, 3,
-                GL_FLOAT, GL_FALSE, gl::stride<float>(10),
+                GL_FLOAT, GL_FALSE, gl::stride<float>(7),
                 gl::bufferOffset<float>(4));
-            mSliceData.vertexAttribPointer(GRADIENT_LAYOUT_LOCATION, 3,
-                GL_FLOAT, GL_FALSE, gl::stride<float>(10),
-                gl::bufferOffset<float>(7));
 
             mVao.enableVertexAttribArray(VERTICES_LAYOUT_LOCATION);
             mVao.enableVertexAttribArray(NORMALS_LAYOUT_LOCATION);
-            mVao.enableVertexAttribArray(GRADIENT_LAYOUT_LOCATION);
 
             mSliceIndices.bindBuffer();
             mSliceIndices.bufferData(
@@ -217,8 +204,9 @@ namespace athena
             ImGui::Combo("Cross-section", &mSelectedSlice, sliceNames.data(),
                 ((int)mNumSlices));
 
-            std::vector<const char*> renderNames = { "Field", "Gradient",
-                "Natural gradient" };
+            std::vector<const char*> renderNames = { "Field", 
+                "Length of projected gradient",
+                "Length of projected gradient squared" };
             ImGui::Combo("Render mode", &mRenderMode, renderNames.data(),
                 ((int)renderNames.size()));
             ImGui::End();

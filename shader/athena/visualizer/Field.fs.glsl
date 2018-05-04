@@ -4,7 +4,6 @@ in VertexData
 {
     float value;
     vec3 gradient;
-    vec3 naturalGrad;
 } inData;
 
 out vec4 fragColour;
@@ -26,10 +25,9 @@ vec4 colourField(float value)
     return field;
 }
 
-vec4 colourGradient(vec3 gradient)
+vec4 colourGradient(float l)
 {
     vec4 grad = vec4(0, 0, 0, 1);
-    float l = clamp(length(gradient), 0, 1);
     if (l < 0.1)
     {
         grad.g = 1;
@@ -46,14 +44,18 @@ void main()
 {
     if (renderMode == 0)
     {
+        // Field mode.
         fragColour = colourField(inData.value);
     }
     else if (renderMode == 1)
     {
-        fragColour = colourGradient(inData.gradient);
+        // Length of projected gradient.
+        fragColour = colourGradient(clamp(length(inData.gradient), 0, 1));
     }
     else
     {
-        fragColour = colourGradient(inData.naturalGrad);
+        // Length of projected gradient squared.
+        fragColour = 
+            colourGradient(clamp(dot(inData.gradient, inData.gradient), 0, 1));
     }
 }
