@@ -37,9 +37,33 @@ namespace athena
 
             atlas::math::Normal sdg(atlas::math::Point const& p) const override
             {
-                using atlas::math::Point;
+                using atlas::math::Normal;
 
-                return Point();
+                auto const& n = mNpi;
+                auto const& g = p;
+
+                const float nDotG = glm::dot(n, g);
+                const float denominator = 2 * glm::length(g - glm::dot(g, n) * n);
+
+                float x =
+                    (2 * (1 - n.x * n.x) * (g.x - n.x * (nDotG))) -
+                    (2 * (n.x * n.y)     * (g.y - n.y * (nDotG))) -
+                    (2 * (n.x * n.z)     * (g.z - n.z * (nDotG)));
+
+                float y =
+                    (2 * (1 - n.y * n.y) * (g.y - n.y * (nDotG))) -
+                    (2 * (n.x * n.y)     * (g.x - n.x * (nDotG))) -
+                    (2 * (n.y * n.z)     * (g.z - n.z * (nDotG)));
+
+                float z =
+                    (2 * (1 - n.z * n.z) * (g.z - n.z * (nDotG))) -
+                    (2 * (n.x * n.z)     * (g.x - n.x * (nDotG))) -
+                    (2 * (n.y * n.z)     * (g.y - n.y * (nDotG)));
+
+                Normal grad{ x, y, z };
+                grad /= denominator;
+
+                return grad;
             }
 
             atlas::utils::BBox box() const override
@@ -48,7 +72,7 @@ namespace athena
             }
 
             atlas::math::Normal mNpi;
-            float mNpiDotNpi
+            float mNpiDotNpi;
         };
     }
 
