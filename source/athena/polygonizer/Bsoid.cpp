@@ -4,6 +4,7 @@
 #include <atlas/core/Timer.hpp>
 #include <atlas/core/Macros.hpp>
 #include <atlas/core/Assert.hpp>
+#include <atlas/core/Log.hpp>
 
 #include <numeric>
 #include <functional>
@@ -327,8 +328,45 @@ namespace athena
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
                 section->resizeContours(size);
-                manager.insertContours(section->getContour());
                 ++i;
+            }
+
+            // Now assemble the a list containing the number of contours that
+            // each slice has.
+            std::vector<std::size_t> contoursPerSlice;
+            for (auto& section : mCrossSections)
+            {
+                contoursPerSlice.push_back(section->getContour().size());
+            }
+
+            // Now send them down to the manager and get back the list
+            // of branches.
+            auto branches = manager.findBranches(contoursPerSlice);
+            for (auto& branch : branches)
+            {
+                std::string type;
+                switch (branch.type)
+                {
+                case BranchingManager::BranchType::Cap:
+                    type = "Cap";
+                    break;
+
+                case BranchingManager::BranchType::Branch:
+                    type = "Branch";
+                    break;
+                }
+
+                DEBUG_LOG_V("Found branch in slices (%d, %d) of type %s.",
+                    branch.top, branch.bottom, type.c_str());
+            }
+
+            // TODO: Add branch processing here.
+
+            // Once we have all of the contour data, send it down to the manager
+            // for linking.
+            for (auto& section : mCrossSections)
+            {
+                manager.insertContours(section->getContour());
             }
 
             mMesh = manager.connectContours();
