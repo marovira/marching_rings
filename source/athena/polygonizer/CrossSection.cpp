@@ -141,6 +141,11 @@ namespace athena
             }
         }
 
+        void CrossSection::findInflexionPoint()
+        {
+
+        }
+
         std::vector<Voxel> const& CrossSection::getVoxels() const
         {
             return mVoxels;
@@ -427,6 +432,147 @@ namespace athena
 
                 mVoxels.push_back(v);
             }
+        }
+
+        void CrossSection::marchVoxelInSurface()
+        {
+            using atlas::math::Point4;
+            using atlas::math::Point;
+
+            std::map<std::uint32_t, FieldPoint> seenPoints;
+            std::map<std::uint32_t, VoxelId> seenVoxels;
+            std::queue<PointId> frontier;
+
+            auto toSuperVoxel = [this](Point const& p)
+            {
+                auto v = (p - mMin) / mSvDelta;
+                Point id;
+                id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
+                id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
+
+                // Check if either of the coordinates of the id are beyond
+                // the edge of the grid.
+                id.x = (id.x < mSvSize) ? id.x : id.x - 1;
+                id.y = (id.y < mSvSize) ? id.y : id.y - 1;
+                return id;
+            };
+
+            auto evalField = [this, toSuperVoxel](Point const& p)
+            {
+                auto id = toSuperVoxel(p);
+
+                auto svHash = BsoidHash32::hash(id.x, id.y);
+                SuperVoxel sv = mSuperVoxels[svHash];
+                auto val = sv.eval(p);
+                auto g = sv.grad(p);
+                return FieldPoint(p, val, g, svHash);
+            };
+
+            auto findPoint = [this, &seenPoints, evalField](PointId const& id)
+            {
+                auto entry = seenPoints.find(BsoidHash32::hash(id.x, id.y));
+                if (entry != seenPoints.end())
+                {
+                    // We have seen this point already, so grab it from our list.
+                    return (*entry).second;
+                }
+                else
+                {
+                    // We haven't seen this point yet, so we need to add it
+                    // to our list.
+                    auto pt = createCellPoint(id, mGridDelta);
+                    auto vp = evalField(pt);
+                    auto hash = BsoidHash32::hash(id.x, id.y);
+                    seenPoints.insert(
+                        std::pair<std::uint32_t, FieldPoint>(hash, vp));
+                    return vp;
+                }
+            };
+
+            auto generateVoxel = [this, findPoint](Voxel& v)
+            {
+                int d = 0;
+                for (auto& decal : VoxelDecals)
+                {
+                    auto decalId = v.id + decal;
+                    v.points[d] = findPoint(decalId);
+                    ++d;
+                }
+            };
+
+            auto getEdges = [this](Voxel const& v)
+            {
+                FieldPoint start, end;
+                int edgeId = 0;
+                std::vector<int> edges;
+
+                for (std::size_t i = 0; i < v.points.size(); ++i)
+                {
+                    start = v.points[i];
+                    end = v.points[(i + 1) % v.points.size()];
+                    float val1 = start.value.w - mMagic;
+                    float val2 = end.value.w - mMagic;
+
+                    // All that we care about is the change in sign. If there
+                    // is a change, we know the surface crosses this edge.
+                    if (glm::sign(val1) != glm::sign(val2))
+                    {
+                        edges.push_back(edgeId);
+                    }
+                    edgeId++;
+                }
+                return edges;
+            };
+
+            frontier.push(mVoxels[0].id);
+
+            while (!frontier.empty())
+            {
+                auto top = frontier.front();
+                frontier.pop();
+
+                // Check if we have seen this voxel before.
+                if (seenVoxels.find(BsoidHash32::hash(top.x, top.y)) !=
+                    seenVoxels.end())
+                {
+                    continue;
+                }
+                else
+                {
+                    seenVoxels.insert(
+                        std::pair<std::uint32_t, VoxelId>(
+                            BsoidHash32::hash(top.x, top.y), top));
+                }
+
+                Voxel v(top);
+                generateVoxel(v);
+
+                auto edges = getEdges(v);
+                if (edges.empty())
+                {
+                    continue;
+                }
+
+                for (auto& edge : edges)
+                {
+                    auto decal = EdgeDecals.at(edge);
+
+                    auto neighbourDecal = v.id;
+                    neighbourDecal.x += decal.x;
+                    neighbourDecal.y += decal.y;
+
+                    if (!validVoxel(Voxel(neighbourDecal)))
+                    {
+                        continue;
+                    }
+
+                    frontier.push(neighbourDecal);
+                }
+
+                // Store only those voxels that actually have a possible
+                // inflexion point.
+            }
+
         }
 
         std::vector<LineSegment> CrossSection::generateLineSegments()
