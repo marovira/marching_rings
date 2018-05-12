@@ -10,6 +10,44 @@ namespace athena
         BranchingManager::BranchingManager()
         { }
 
+        std::vector<BranchingManager::BranchData> 
+            BranchingManager::findBranches(std::vector<std::size_t> const& slices)
+        {
+            std::vector<BranchData> result;
+            for (std::size_t i = 0; i < slices.size() - 1; ++i)
+            {
+                std::size_t top    = slices[i + 0];
+                std::size_t bottom = slices[i + 1];
+
+                // Ignore empty slices.
+                if (top == 0 && bottom == 0)
+                {
+                    continue;
+                }
+
+                // Single or multi-branches are easy to handle, so ignore them.
+                if (top == bottom)
+                {
+                    continue;
+                }
+
+                // If one of the two is 0 and the other one isn't, then we have
+                // a cap.
+                if ((top == 0 && bottom != 0) || (top != 0 && bottom == 0))
+                {
+                    result.emplace_back(i, i + 1, BranchType::Cap);
+                    continue;
+                }
+
+                if (top != 0 && bottom != 0 && top != bottom)
+                {
+                    result.emplace_back(i, i + 1, BranchType::Branch);
+                }
+            }
+
+            return result;
+        }
+
         void BranchingManager::insertContours(
             std::vector<std::vector<FieldPoint>> const& slice)
         {
@@ -25,6 +63,7 @@ namespace athena
                 }
                 s.push_back(contour);
             }
+
             mSlices.push_back(s);
         }
 
