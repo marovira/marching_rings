@@ -61,6 +61,8 @@ namespace athena
                 mAxisId = glm::uvec2(0, 1);
                 break;
             }
+
+            mUnitNormal = glm::normalize(mNormal);
         }
 
         void CrossSection::constructLattice()
@@ -143,6 +145,10 @@ namespace athena
 
         void CrossSection::findInflexionPoint()
         {
+            // First grab the shadow voxels.
+            auto shadowVoxels = findShadowVoxels();
+
+            // Now retrieve the centre of gravity for each cluster of voxels.
 
         }
 
@@ -434,7 +440,7 @@ namespace athena
             }
         }
 
-        void CrossSection::marchVoxelInSurface()
+        std::vector<athena::polygonizer::Voxel> CrossSection::findShadowVoxels()
         {
             using atlas::math::Point4;
             using atlas::math::Point;
@@ -515,7 +521,9 @@ namespace athena
 
                     // All that we care about is the change in sign. If there
                     // is a change, we know the surface crosses this edge.
-                    if (glm::sign(val1) != glm::sign(val2))
+                    if (
+                        (glm::sign(val1) == -1 && glm::sign(val2) == -1) ||
+                        (glm::sign(val1) != glm::sign(val2)))
                     {
                         edges.push_back(edgeId);
                     }
@@ -524,7 +532,61 @@ namespace athena
                 return edges;
             };
 
+            auto shadowField = [this](FieldPoint const& p)
+            {
+                return glm::length(p.g - glm::proj(p.g, mUnitNormal));
+            };
+
+            auto containsShadow = [this, shadowField](Voxel const& v)
+            {
+                std::array<FieldPoint, 4> shadowPoints;
+                {
+                    int i = 0;
+                    for (auto& pt : v.points)
+                    {
+                        float shadow = shadowField(pt);
+                        FieldPoint shadowPoint = { pt.value.xyz(), shadow };
+                        shadowPoints[i] = shadowPoint;
+                        ++i;
+                    }
+                }
+
+                FieldPoint start, end;
+                const float shadowMagic = 0.1f;
+                for (std::size_t i = 0; i < shadowPoints.size(); ++i)
+                {
+                    start = shadowPoints[i];
+                    end = shadowPoints[(i + 1) % shadowPoints.size()];
+                    float val1 = start.value.w - shadowMagic;
+                    float val2 = start.value.w - shadowMagic;
+                    if (glm::sign(val1) != glm::sign(val2))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+            // Before we begin, initialize our maps with all of our voxels.
+            for (auto& voxel : mVoxels)
+            {
+                seenVoxels.insert(
+                    std::pair<std::uint32_t, VoxelId>(
+                        BsoidHash32::hash(voxel.id.x, voxel.id.y), voxel.id));
+                int p = 0;
+                for (auto& decal : VoxelDecals)
+                {
+                    auto decalId = voxel.id + decal;
+                    auto hash = BsoidHash32::hash(decalId.x, decalId.y);
+                    seenPoints.insert(
+                        std::pair<std::uint32_t, FieldPoint>(
+                            hash, voxel.points[p]));
+                }
+            }
+
             frontier.push(mVoxels[0].id);
+            std::vector<Voxel> shadowVoxels;
 
             while (!frontier.empty())
             {
@@ -569,9 +631,15 @@ namespace athena
                     frontier.push(neighbourDecal);
                 }
 
-                // Store only those voxels that actually have a possible
-                // inflexion point.
+                // Check if the voxel has part of a shadow region. If it does,
+                // store it.
+                if (containsShadow(v))
+                {
+                    shadowVoxels.push_back(v);
+                }
             }
+
+            return shadowVoxels;
 
         }
 

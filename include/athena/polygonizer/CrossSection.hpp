@@ -43,7 +43,7 @@ namespace athena
             atlas::math::Point createCellPoint(glm::u32vec2 const& p,
                 atlas::math::Point const& delta);
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
-            void marchVoxelInSurface();
+            std::vector<Voxel> findShadowVoxels();
 
             std::vector<LineSegment> generateLineSegments();
             void convertToContour(std::vector<LineSegment> const& segments);
@@ -56,6 +56,7 @@ namespace athena
 
             atlas::math::Point mGridDelta, mSvDelta, mMin, mMax;
             atlas::math::Normal mNormal;
+            atlas::math::Normal mUnitNormal;
             std::uint32_t mGridSize, mSvSize;
             glm::uvec2 mAxisId;
             float mMagic;
