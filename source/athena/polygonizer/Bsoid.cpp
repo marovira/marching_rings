@@ -243,7 +243,7 @@ namespace athena
             auto time = global.elapsed();
             mLog << "Total lattice generation time: " << time << " seconds\n";
 
-            std::vector<Voxel> voxels;
+            std::vector<std::vector<Voxel>> voxels;
             i = 0;
             for (auto& section : mCrossSections)
             {
@@ -251,8 +251,7 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                voxels.insert(voxels.end(), section->getVoxels().begin(),
-                    section->getVoxels().end());
+                voxels.push_back(section->getVoxels());
                 ++i;
             }
 
@@ -482,6 +481,11 @@ namespace athena
             mLog << "#===========================#\n";
             mLog << "Total runtime: " << global.elapsed() << " seconds\n";
             mLog << "Total vertices generated: " << mMesh.vertices().size() << "\n";
+        }
+
+        std::size_t Bsoid::getNumSlices() const
+        {
+            return mCrossSections.size();
         }
 
         Lattice const& Bsoid::getLattice() const

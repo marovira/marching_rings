@@ -48,6 +48,7 @@ namespace athena
             void constructMesh();
             void polygonize();
 
+            std::size_t getNumSlices() const;
             Lattice const& getLattice() const;
             Contour const& getContour() const;
             atlas::utils::Mesh& getMesh();
