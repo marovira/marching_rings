@@ -7,34 +7,9 @@ namespace athena
 {
     namespace polygonizer
     {
-        void Lattice::makeLattice(std::vector<Voxel> const& voxels)
+        void Lattice::makeLattice(std::vector<std::vector<Voxel>> const& voxels)
         {
             using atlas::math::Point;
-
-            std::vector<Point> verts;
-            std::vector<std::uint32_t> idxs;
-            std::uint32_t start = 0;
-            for (auto& cell : voxels)
-            {
-                for (auto& pt : cell.points)
-                {
-                    verts.push_back(pt.value.xyz());
-                }
-
-                idxs.push_back(start);
-                idxs.push_back(start + 1);
-
-                idxs.push_back(start + 1);
-                idxs.push_back(start + 2);
-
-                idxs.push_back(start + 2);
-                idxs.push_back(start + 3);
-
-                idxs.push_back(start + 3);
-                idxs.push_back(start);
-
-                start = static_cast<std::uint32_t>(verts.size());
-            }
 
             struct LatticePoint
             {
@@ -70,24 +45,63 @@ namespace athena
                 }
             };
 
-            std::unordered_set<LatticePoint, LatticeHash> uniqueVertices;
-            std::uint32_t current = 0;
-            for (auto& idx : idxs)
+            for (auto& list : voxels)
             {
-                auto pt = verts[idx];
-                if (uniqueVertices.find(pt) == uniqueVertices.end())
+                if (list.empty())
                 {
-                    indices.push_back(current);
-                    vertices.push_back(pt);
+                    continue;
+                }
 
-                    uniqueVertices.emplace(pt, current);
-                    current++;
-                }
-                else
+                std::vector<Point> verts;
+                std::vector<std::uint32_t> idxs;
+                std::uint32_t idxStart = 0;
+                for (auto& cell : list)
                 {
-                    auto uniqueV = *uniqueVertices.find(pt);
-                    indices.push_back(uniqueV.index);
+                    for (auto& pt : cell.points)
+                    {
+                        verts.push_back(pt.value.xyz());
+                    }
+
+                    idxs.push_back(idxStart);
+                    idxs.push_back(idxStart + 1);
+
+                    idxs.push_back(idxStart + 1);
+                    idxs.push_back(idxStart + 2);
+
+                    idxs.push_back(idxStart + 2);
+                    idxs.push_back(idxStart + 3);
+
+                    idxs.push_back(idxStart + 3);
+                    idxs.push_back(idxStart);
+                    
+                    idxStart = static_cast<std::uint32_t>(verts.size());
                 }
+                
+                std::unordered_set<LatticePoint, LatticeHash> uniqueVertices;
+                std::uint32_t current = vertices.size();
+                std::uint32_t start = indices.size();
+                std::uint32_t size = 0;
+                for (auto& idx : idxs)
+                {
+                    auto pt = verts[idx];
+                    if (uniqueVertices.find(pt) == uniqueVertices.end())
+                    {
+                        indices.push_back(current);
+                        vertices.push_back(pt);
+
+                        uniqueVertices.emplace(pt, current);
+                        size++;
+                        current++;
+                    }
+                    else
+                    {
+                        auto uniqueV = *uniqueVertices.find(pt);
+                        indices.push_back(uniqueV.index);
+                        size++;
+                    }
+                }
+
+                offsets.emplace_back(start, size);
             }
         }
     }
