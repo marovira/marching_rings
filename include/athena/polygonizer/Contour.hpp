@@ -18,9 +18,12 @@ namespace athena
             Contour() = default;
 
             void makeContour(std::vector<std::vector<FieldPoint>> const& contours);
+            void clearBuffers();
 
             std::vector<atlas::math::Point> vertices;
             std::vector<std::uint32_t> indices;
+            std::vector<std::pair<std::uint32_t, std::uint32_t>> indexOffsets;
+            std::vector<std::pair<std::uint32_t, std::uint32_t>> vertexOffsets;
         };
     }
 }
