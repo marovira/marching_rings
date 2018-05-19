@@ -67,6 +67,7 @@ namespace athena
             bool mShowMCMesh;
             bool mHasMC;
             int mRenderMode;
+            int mSelectedSlice;
         };
     }
 }

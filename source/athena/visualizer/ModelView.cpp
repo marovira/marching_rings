@@ -42,8 +42,9 @@ namespace athena
             mShowContours(false),
             mShowMesh(false),
             mShowMCMesh(false),
+            mHasMC(false),
             mRenderMode(0),
-            mHasMC(false)
+            mSelectedSlice(0)
         {
             initShaders();
         }
@@ -69,8 +70,9 @@ namespace athena
             mShowContours(false),
             mShowMesh(false),
             mShowMCMesh(false),
+            mHasMC(true),
             mRenderMode(0),
-            mHasMC(true)
+            mSelectedSlice(0)
         {
             initShaders();
         }
@@ -102,8 +104,18 @@ namespace athena
 
                 mLatticeVao.bindVertexArray();
                 mLatticeIndices.bindBuffer();
-                glDrawElements(GL_LINES, (GLsizei)mLatticeNumIndices,
-                    GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                if (mSelectedSlice == 0)
+                {
+                    glDrawElements(GL_LINES, (GLsizei)mLatticeNumIndices,
+                        GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                }
+                else
+                {
+                    auto index = mSelectedSlice - 1;
+                    auto offset = mSoid.getLattice().offsets[index];
+                    glDrawElements(GL_LINES, (GLsizei)offset.second,
+                        GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(offset.first));
+                }
                 mLatticeIndices.unBindBuffer();
                 mLatticeVao.unBindVertexArray();
 
@@ -124,12 +136,32 @@ namespace athena
 
                 // First draw the vertices.
                 glUniform1i(var, 0);
-                glDrawArrays(GL_POINTS, 0, mContourNumVertices);
+                if (mSelectedSlice == 0)
+                {
+                    glDrawArrays(GL_POINTS, 0, mContourNumVertices);
+                }
+                else
+                {
+                    auto index = mSelectedSlice - 1;
+                    auto offset = mSoid.getContour().vertexOffsets[index];
+                    glDrawArrays(GL_POINTS, offset.first, offset.second);
+                }
 
                 // Now draw the actual contours.
                 glUniform1i(var, 1);
-                glDrawElements(GL_LINES, (GLsizei)mContourNumIndices,
-                    GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                if (mSelectedSlice == 0)
+                {
+                    glDrawElements(GL_LINES, (GLsizei)mContourNumIndices,
+                        GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(0));
+                }
+                else
+                {
+                    auto index = mSelectedSlice - 1;
+                    auto offset = mSoid.getContour().indexOffsets[index];
+                    glDrawElements(GL_LINES, (GLsizei)offset.second,
+                        GL_UNSIGNED_INT, gl::bufferOffset<GLuint>(offset.first));
+                }
+
                 mContourIndices.unBindBuffer();
                 mContourVao.unBindVertexArray();
             }
@@ -260,6 +292,25 @@ namespace athena
             // Polygonizer controls window.
             ImGui::SetNextWindowSize(ImVec2(470, 400), ImGuiSetCond_FirstUseEver);
             ImGui::Begin("Polygonizer Controls");
+            ImGui::Text("Cross-section controls");
+            {
+                std::vector<const char*> sliceNames;
+                std::vector<std::string> names;
+                names.push_back("All cross-sections");
+                for (std::size_t i = 0; i < mSoid.getNumSlices(); ++i)
+                {
+                    std::string s = "Cross-section " + std::to_string(i);
+                    names.push_back(s);
+                }
+
+                sliceNames.resize(names.size());
+                std::transform(names.begin(), names.end(), sliceNames.begin(),
+                    std::mem_fun_ref(&std::string::c_str));
+                ImGui::Combo("Cross-section", &mSelectedSlice, sliceNames.data(),
+                    ((int)mSoid.getNumSlices()));
+            }
+
+            ImGui::Dummy(ImVec2(0, 10));
             ImGui::Text("Generation controls");
             ImGui::Separator();
             if (ImGui::Button("Construct Cross-sections"))
