@@ -284,7 +284,7 @@ namespace athena
             mLog << "Total contour generation time: " << time << " seconds\n";
 
             // Something here to create the contour thing.
-            std::vector<std::vector<FieldPoint>> contours;
+            std::vector<std::vector<std::vector<FieldPoint>>> contours;
             i = 0;
             for (auto& section : mCrossSections)
             {
@@ -292,8 +292,8 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                contours.insert(contours.end(), section->getContour().begin(),
-                    section->getContour().end());
+
+                contours.push_back(section->getContour());
                 ++i;
             }
 
@@ -370,7 +370,7 @@ namespace athena
 
             mMesh = manager.connectContours();
 
-            std::vector<std::vector<FieldPoint>> contours;
+            std::vector<std::vector<std::vector<FieldPoint>>> contours;
             i = 0;
             for (auto& section : mCrossSections)
             {
@@ -378,8 +378,7 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                contours.insert(contours.end(), section->getContour().begin(),
-                    section->getContour().end());
+                contours.push_back(section->getContour());
                 ++i;
             }
 

@@ -5,7 +5,7 @@ namespace athena
     namespace polygonizer
     {
         void Contour::makeContour(
-            std::vector<std::vector<FieldPoint>> const& contours)
+            std::vector<std::vector<std::vector<FieldPoint>>> const& sliceContours)
         {
             using atlas::math::Point;
 
@@ -15,28 +15,39 @@ namespace athena
             std::uint32_t startIdx = 0;
             std::uint32_t numVerts = 0;
             std::uint32_t numIndices = 0;
+            // Some random text
 
-            for (auto& contour : contours)
+            for (auto& contours : sliceContours)
             {
-                for (auto& pt : contour)
+                if (contours.empty())
                 {
-                    vertices.push_back(pt.value.xyz());
-                    ++numVerts;
+                    indexOffsets.emplace_back(0, 0);
+                    vertexOffsets.emplace_back(0, 0);
+                    continue;
                 }
 
-                for (std::uint32_t i = 0; i < contour.size(); ++i)
+                for (auto& contour : contours)
                 {
-                    indices.push_back(start + (i + 0));
-                    indices.push_back(start + ((i + 1) % contour.size()));
-                    numIndices += 2;
-                }
+                    for (auto& pt : contour)
+                    {
+                        vertices.push_back(pt.value.xyz());
+                        ++numVerts;
+                    }
 
-                indexOffsets.emplace_back(startIdx, numIndices);
-                vertexOffsets.emplace_back(start, numVerts);
-                start += numVerts;
-                startIdx += numIndices;
-                numVerts = 0;
-                numIndices = 0;
+                    for (std::uint32_t i = 0; i < contour.size(); ++i)
+                    {
+                        indices.push_back(start + (i + 0));
+                        indices.push_back(start + ((i + 1) % contour.size()));
+                        numIndices += 2;
+                    }
+
+                    indexOffsets.emplace_back(startIdx, numIndices);
+                    vertexOffsets.emplace_back(start, numVerts);
+                    start += numVerts;
+                    startIdx += numIndices;
+                    numVerts = 0;
+                    numIndices = 0;
+                }
             }
         }
 

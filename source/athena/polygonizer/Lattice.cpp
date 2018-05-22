@@ -49,6 +49,7 @@ namespace athena
             {
                 if (list.empty())
                 {
+                    offsets.emplace_back(0, 0);
                     continue;
                 }
 
