@@ -16,11 +16,11 @@ std::vector<athena::models::ModelFn> getModels()
 {
     using namespace athena::models;
     std::vector<athena::models::ModelFn> result;
-    result.push_back(makeSphere);
+    //result.push_back(makeSphere);
     result.push_back(makePeanut);
     //result.push_back(makeCylinder);
     //result.push_back(makeCone);
-    result.push_back(makeTorus);
+    //result.push_back(makeTorus);
 
     return result;
 }
