@@ -148,6 +148,12 @@ namespace athena
             // First grab the shadow voxels.
             auto shadowVoxels = findShadowVoxels();
 
+            mVoxels.clear();
+            for (auto& voxel : shadowVoxels)
+            {
+                mVoxels.push_back(voxel);
+            }
+
             // Now retrieve the centre of gravity for each cluster of voxels.
 
         }
@@ -521,9 +527,8 @@ namespace athena
 
                     // All that we care about is the change in sign. If there
                     // is a change, we know the surface crosses this edge.
-                    if (
-                        (glm::sign(val1) == -1 && glm::sign(val2) == -1) ||
-                        (glm::sign(val1) != glm::sign(val2)))
+                    if ((glm::sign(val1) == 1 && glm::sign(val2) == 1) ||
+                        glm::sign(val1) != glm::sign(val2))
                     {
                         edges.push_back(edgeId);
                     }
@@ -571,9 +576,6 @@ namespace athena
             // Before we begin, initialize our maps with all of our voxels.
             for (auto& voxel : mVoxels)
             {
-                seenVoxels.insert(
-                    std::pair<std::uint32_t, VoxelId>(
-                        BsoidHash32::hash(voxel.id.x, voxel.id.y), voxel.id));
                 int p = 0;
                 for (auto& decal : VoxelDecals)
                 {
@@ -582,6 +584,7 @@ namespace athena
                     seenPoints.insert(
                         std::pair<std::uint32_t, FieldPoint>(
                             hash, voxel.points[p]));
+                    ++p;
                 }
             }
 
@@ -633,14 +636,14 @@ namespace athena
 
                 // Check if the voxel has part of a shadow region. If it does,
                 // store it.
-                if (containsShadow(v))
+                //if (containsShadow(v))
                 {
                     shadowVoxels.push_back(v);
                 }
             }
 
+            DEBUG_LOG_V("Found %d shadow voxels.\n", shadowVoxels.size());
             return shadowVoxels;
-
         }
 
         std::vector<LineSegment> CrossSection::generateLineSegments()
