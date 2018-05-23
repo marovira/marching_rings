@@ -359,7 +359,22 @@ namespace athena
                     branch.top, branch.bottom, type.c_str());
             }
 
-            // TODO: Add branch processing here.
+            for (auto& branch : branches)
+            {
+                switch (branch.type)
+                {
+                case BranchingManager::BranchType::Cap:
+                    break;
+
+                case BranchingManager::BranchType::Branch:
+                    // Grab the top cross-section (which is the one prior to the
+                    // branch.)
+                    auto& top = mCrossSections[branch.top];
+                    top->findInflexionPoint();
+                    break;
+                }
+            }
+
 
             // Once we have all of the contour data, send it down to the manager
             // for linking.
@@ -369,6 +384,20 @@ namespace athena
             }
 
             mMesh = manager.connectContours();
+
+            std::vector<std::vector<Voxel>> voxels;
+            i = 0;
+            for (auto& section : mCrossSections)
+            {
+#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
+                voxels.push_back(section->getVoxels());
+                ++i;
+            }
+
+            mLattice.makeLattice(voxels);
 
             std::vector<std::vector<std::vector<FieldPoint>>> contours;
             i = 0;
