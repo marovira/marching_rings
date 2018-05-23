@@ -45,6 +45,8 @@ namespace athena
                 }
             };
 
+            clearBuffers();
+
             for (auto& list : voxels)
             {
                 if (list.empty())
@@ -104,6 +106,13 @@ namespace athena
 
                 offsets.emplace_back(start, size);
             }
+        }
+
+        void Lattice::clearBuffers()
+        {
+            vertices.clear();
+            indices.clear();
+            offsets.clear();
         }
     }
 }

@@ -17,6 +17,7 @@ namespace athena
             Lattice() = default;
 
             void makeLattice(std::vector<std::vector<Voxel>> const& voxels);
+            void clearBuffers();
 
             std::vector<atlas::math::Point> vertices;
             std::vector<std::uint32_t> indices;
