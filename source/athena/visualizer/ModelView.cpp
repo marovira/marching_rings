@@ -532,6 +532,30 @@ namespace athena
             std::vector<std::uint32_t> idx;
 
 #if defined(ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+
+            verts = mSoid.getLattice().vertices;
+            idx = mSoid.getLattice().indices;
+
+            mLatticeNumIndices = idx.size();
+            if (mLatticeNumIndices == 0)
+            {
+                return;
+            }
+
+            mLatticeVao.bindVertexArray();
+            mLatticeData.bindBuffer();
+            mLatticeData.bufferData(
+                gl::size<math::Point>(verts.size()), verts.data(), 
+                GL_STATIC_DRAW);
+
+            mLatticeIndices.bindBuffer();
+            mLatticeIndices.bufferData(
+                gl::size<GLuint>(idx.size()), idx.data(), GL_STATIC_DRAW);
+
+            mLatticeIndices.unBindBuffer();
+            mLatticeData.unBindBuffer();
+            mLatticeVao.unBindVertexArray();
+
             verts = mSoid.getContour().vertices;
             idx = mSoid.getContour().indices;
             mContourNumIndices = idx.size();
