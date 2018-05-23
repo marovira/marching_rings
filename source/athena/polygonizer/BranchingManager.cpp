@@ -41,7 +41,14 @@ namespace athena
 
                 if (top != 0 && bottom != 0 && top != bottom)
                 {
-                    result.emplace_back(i, i + 1, BranchType::Branch);
+                    if (top < bottom)
+                    {
+                        result.emplace_back(i, i + 1, BranchType::Branch);
+                    }
+                    else
+                    {
+                        result.emplace_back(i + 1, i, BranchType::Branch);
+                    }
                 }
             }
 
