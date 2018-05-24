@@ -31,7 +31,7 @@ namespace athena
             void constructLattice();
             void constructContour();
             void resizeContours(std::size_t size);
-            void findInflexionPoint();
+            atlas::math::Point findInflexionPoint();
 
             std::vector<Voxel> const& getVoxels() const;
             std::vector<std::vector<FieldPoint>> const& getContour() const;
@@ -45,7 +45,10 @@ namespace athena
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
             std::vector<Voxel> findShadowVoxels();
 
-            std::vector<LineSegment> generateLineSegments();
+            std::vector<LineSegment> generateLineSegments(
+                std::vector<Voxel> const& voxels);
+            std::vector<FieldPoint> generateShadowPoints(
+                std::vector<Voxel> const& voxels);
             void convertToContour(std::vector<LineSegment> const& segments);
             void subdivideContour(int idx, std::size_t size);
 

@@ -92,9 +92,6 @@ namespace athena
                 }
             }
 
-            // HACK: In general, sending the iso-value as the offset won't work
-            // since not every function is symmetrical. It may be a good idea
-            // to instead have an offset be computed based on the filter used.
             auto seedPoints = mTree->getSeeds(mNormal);
             std::vector<Voxel> seedVoxels;
             for (auto& pt : seedPoints)
@@ -115,7 +112,7 @@ namespace athena
 
         void CrossSection::constructContour()
         {
-            auto segments = generateLineSegments();
+            auto segments = generateLineSegments(mVoxels);
             convertToContour(segments);
 #if defined ATLAS_DEBUG
              validateContour();
@@ -143,19 +140,33 @@ namespace athena
             }
         }
 
-        void CrossSection::findInflexionPoint()
+        atlas::math::Point CrossSection::findInflexionPoint()
         {
             // First grab the shadow voxels.
             auto shadowVoxels = findShadowVoxels();
 
-            mVoxels.clear();
+            // Now that we have the shadow voxels let's compute
+            // their triangulation using standard MS.
+            generateShadowPoints(shadowVoxels);
+
+            // Once we have the set of vertices, compute the centre of gravity.
+            auto points = generateShadowPoints(shadowVoxels);
+            atlas::math::Point centre(0.0f);
+            for (auto& point : points)
+            {
+                centre += point.value.xyz();
+            }
+
+            centre /= static_cast<float>(points.size());
+            DEBUG_LOG_V("Centre of gravity located at (%f, %f, %f).",
+                centre.x, centre.y, centre.z);
+
             for (auto& voxel : shadowVoxels)
             {
                 mVoxels.push_back(voxel);
             }
 
-            // Now retrieve the centre of gravity for each cluster of voxels.
-
+            return centre;
         }
 
         std::vector<Voxel> const& CrossSection::getVoxels() const
@@ -563,7 +574,7 @@ namespace athena
                     start = shadowPoints[i];
                     end = shadowPoints[(i + 1) % shadowPoints.size()];
                     float val1 = start.value.w - shadowMagic;
-                    float val2 = start.value.w - shadowMagic;
+                    float val2 = end.value.w - shadowMagic;
                     if (glm::sign(val1) != glm::sign(val2))
                     {
                         return true;
@@ -636,9 +647,19 @@ namespace athena
 
                 // Check if the voxel has part of a shadow region. If it does,
                 // store it.
-                //if (containsShadow(v))
+                if (containsShadow(v))
                 {
-                    shadowVoxels.push_back(v);
+                    Voxel shadowVoxel;
+                    int i = 0;
+                    for (auto& pt : v.points)
+                    {
+                        FieldPoint shadowPoint = pt;
+                        shadowPoint.value.w = shadowField(pt);
+                        shadowVoxel.points[i] = shadowPoint;
+                        ++i;
+                    }
+
+                    shadowVoxels.push_back(shadowVoxel);
                 }
             }
 
@@ -646,7 +667,8 @@ namespace athena
             return shadowVoxels;
         }
 
-        std::vector<LineSegment> CrossSection::generateLineSegments()
+        std::vector<LineSegment> CrossSection::generateLineSegments( 
+            std::vector<Voxel> const& voxels)
         {
             using atlas::math::Point;
             using atlas::math::Normal;
@@ -715,7 +737,7 @@ namespace athena
 
             // Iterate over the set of voxels.
             int k = 0;
-            for (auto& voxel : mVoxels)
+            for (auto& voxel : voxels)
             {
                 // First compute the cell index for our voxel.
                 std::uint32_t voxelIndex = 0;
@@ -791,6 +813,125 @@ namespace athena
             }
 
             return segments;
+       }
+
+       std::vector<FieldPoint> CrossSection::generateShadowPoints(
+           std::vector<Voxel> const& voxels)
+       {
+           using atlas::math::Point;
+           using atlas::math::Normal;
+
+           std::map<std::uint64_t, FieldPoint> computedPoints;
+           const float shadowMagic = 0.1f;
+
+           auto interpolate = [=](FieldPoint const& p1, FieldPoint const& p2)
+           {
+               using atlas::math::Point2;
+
+               auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
+                   (shadowMagic - p1.value.w) / (p2.value.w - p1.value.w));
+               return FieldPoint(pt, 0.0f);
+           };
+
+           auto generatePoint =
+               [&computedPoints, interpolate, this](PointId const& p1,
+                   PointId const& p2, FieldPoint const& fp1,
+                   FieldPoint const& fp2)
+           {
+               auto h1 = BsoidHash32::hash(p1.x, p1.y);
+               auto h2 = BsoidHash32::hash(p2.x, p2.y);
+
+               auto edgeHash1 = BsoidHash64::hash(h1, h2);
+               auto edgeHash2 = BsoidHash64::hash(h2, h1);
+
+               auto entry1 = computedPoints.find(edgeHash1);
+               auto entry2 = computedPoints.find(edgeHash2);
+
+               if (entry1 != computedPoints.end() ||
+                   entry2 != computedPoints.end())
+               {
+                   if (entry1 != computedPoints.end())
+                   {
+                       return (*entry1).second;
+                   }
+                   
+                   return (*entry2).second;
+               }
+               else
+               {
+                   auto pt = interpolate(fp1, fp2);
+                   computedPoints.insert(
+                       std::pair<std::uint64_t, FieldPoint>(edgeHash1, pt));
+                   return pt;
+               }
+           };
+
+           for (auto& voxel : voxels)
+           {
+               std::uint32_t voxelIndex = 0;
+               std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
+               for (std::size_t i = 0; i < 4; ++i)
+               {
+                   if (atlas::core::leq(voxel.points[i].value.w, shadowMagic))
+                   {
+                       voxelIndex |= coeffs[i];
+                   }
+               }
+
+               if (EdgeTable[voxelIndex] == 0)
+               {
+                   continue;
+               }
+
+               std::vector<FieldPoint> vertList(4);
+                if (EdgeTable[voxelIndex] & 1)
+                {
+                    // Edge 0.
+                    vertList[0] = generatePoint(
+                        voxel.id + VoxelDecals[0],
+                        voxel.id + VoxelDecals[1],
+                        voxel.points[0],
+                        voxel.points[1]);
+                }
+
+                if (EdgeTable[voxelIndex] & 2)
+                {
+                    // Edge 1.
+                    vertList[1] = generatePoint(
+                        voxel.id + VoxelDecals[1],
+                        voxel.id + VoxelDecals[2],
+                        voxel.points[1],
+                        voxel.points[2]);
+                }
+
+
+                if (EdgeTable[voxelIndex] & 4)
+                {
+                    // Edge 2.
+                    vertList[2] = generatePoint(
+                        voxel.id + VoxelDecals[2],
+                        voxel.id + VoxelDecals[3],
+                        voxel.points[2],
+                        voxel.points[3]);
+                }
+
+                if (EdgeTable[voxelIndex] & 8)
+                {
+                    // Edge 3.
+                    vertList[3] = generatePoint(
+                        voxel.id + VoxelDecals[3],
+                        voxel.id + VoxelDecals[0],
+                        voxel.points[3],
+                        voxel.points[0]);
+                }
+           }
+
+           std::vector<FieldPoint> result;
+           std::transform(computedPoints.begin(), computedPoints.end(), 
+               std::back_inserter(result), 
+               [](std::pair<std::uint64_t, FieldPoint> const& pair)
+           { return pair.second; });
+           return result;
        }
 
        void CrossSection::convertToContour(
