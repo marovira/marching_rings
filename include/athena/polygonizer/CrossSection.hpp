@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <map>
 
 namespace athena
 {
@@ -31,7 +32,6 @@ namespace athena
             void constructLattice();
             void constructContour();
             void resizeContours(std::size_t size);
-            atlas::math::Point findInflexionPoint();
 
             std::vector<Voxel> const& getVoxels() const;
             std::vector<std::vector<FieldPoint>> const& getContour() const;
@@ -42,12 +42,13 @@ namespace athena
                 atlas::math::Point const& delta);
             atlas::math::Point createCellPoint(glm::u32vec2 const& p,
                 atlas::math::Point const& delta);
+            void fillVoxel(Voxel& v);
+
+            FieldPoint findVoxelPoint(PointId const& id);
+            Voxel findSurfaceVoxel(Voxel const& start);
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
-            std::vector<Voxel> findShadowVoxels();
 
             std::vector<LineSegment> generateLineSegments(
-                std::vector<Voxel> const& voxels);
-            std::vector<FieldPoint> generateShadowPoints(
                 std::vector<Voxel> const& voxels);
             void convertToContour(std::vector<LineSegment> const& segments);
             void subdivideContour(int idx, std::size_t size);
@@ -69,7 +70,12 @@ namespace athena
 
             std::vector<Voxel> mVoxels;
             std::vector<std::vector<FieldPoint>> mContours;
+
             std::unordered_map<std::uint32_t, SuperVoxel> mSuperVoxels;
+
+            std::map<std::uint32_t, FieldPoint> mSeenVoxelPoints;
+            std::map<std::uint32_t, VoxelId> mSeenVoxels;
+
             std::size_t mLargestContourSize;
         };
     }

@@ -70,7 +70,8 @@ namespace athena
             using atlas::math::Point;
             using atlas::utils::BBox;
 
-            // Can be done in parallel.
+            // Can should be done in parallel by having each super-voxel be a
+            // separate task.
             for (std::uint32_t x = 0; x < mSvSize; ++x)
             {
                 for (std::uint32_t y = 0; y < mSvSize; ++y)
@@ -92,6 +93,8 @@ namespace athena
                 }
             }
 
+            // This can also be done in parallel (provided the number of seeds
+            // is sufficiently large (could be based on the number of cores).
             auto seedPoints = mTree->getSeeds(mNormal);
             std::vector<Voxel> seedVoxels;
             for (auto& pt : seedPoints)
@@ -140,35 +143,6 @@ namespace athena
             }
         }
 
-        atlas::math::Point CrossSection::findInflexionPoint()
-        {
-            // First grab the shadow voxels.
-            auto shadowVoxels = findShadowVoxels();
-
-            // Now that we have the shadow voxels let's compute
-            // their triangulation using standard MS.
-            generateShadowPoints(shadowVoxels);
-
-            // Once we have the set of vertices, compute the centre of gravity.
-            auto points = generateShadowPoints(shadowVoxels);
-            atlas::math::Point centre(0.0f);
-            for (auto& point : points)
-            {
-                centre += point.value.xyz();
-            }
-
-            centre /= static_cast<float>(points.size());
-            DEBUG_LOG_V("Centre of gravity located at (%f, %f, %f).",
-                centre.x, centre.y, centre.z);
-
-            for (auto& voxel : shadowVoxels)
-            {
-                mVoxels.push_back(voxel);
-            }
-
-            return centre;
-        }
-
         std::vector<Voxel> const& CrossSection::getVoxels() const
         {
             return mVoxels;
@@ -205,6 +179,66 @@ namespace athena
             return createCellPoint(p.x, p.y, delta);
         }
 
+        FieldPoint CrossSection::findVoxelPoint(PointId const& id)
+        {
+            using atlas::math::Point4;
+            using atlas::math::Point;
+
+            // First check if we have seen this point before.
+            auto entry = mSeenVoxelPoints.find(BsoidHash32::hash(id.x, id.y));
+            if (entry != mSeenVoxelPoints.end())
+            {
+                // We have seen it, return the point.
+                return (*entry).second;
+            }
+            else
+            {
+                // We haven't so first convert the id to an actual point.
+                auto pt = createCellPoint(id, mGridDelta);
+
+                // Now let's figure out which super-voxel contained the point.
+                PointId id;
+                {
+                    auto v = (pt - mMin) / mSvDelta;
+                    id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
+                    id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
+
+                    // Check if either of the coordinates of the id are beyond
+                    // the edge of the grid.
+                    id.x = (id.x < mSvSize) ? id.x : id.x - 1;
+                    id.y = (id.y < mSvSize) ? id.y : id.y - 1;
+                }
+
+                // Now that we have the id, let's evaluate the point.
+                FieldPoint fp;
+                {
+                    auto svHash = BsoidHash32::hash(id.x, id.y);
+                    SuperVoxel sv = mSuperVoxels[svHash];
+                    auto val = sv.eval(pt);
+                    auto g = sv.grad(pt);
+                    fp = { pt, val, g, svHash };
+                }
+
+                // Now that we have the point, let's add it to our list and
+                // return it.
+                auto hash = BsoidHash32::hash(id.x, id.y);
+                mSeenVoxelPoints.insert(
+                    std::pair<std::uint32_t, FieldPoint>(hash, fp));
+                return fp;
+            }
+        }
+
+        void CrossSection::fillVoxel(Voxel& v)
+        {
+            int d = 0;
+            for (auto& decal : VoxelDecals)
+            {
+                auto decalId = v.id + decal;
+                v.points[d] = findVoxelPoint(decalId);
+                ++d;
+            }
+        }
+
         void CrossSection::marchVoxelOnSurface(std::vector<Voxel> const& seeds)
         {
             using atlas::math::Point4;
@@ -213,64 +247,6 @@ namespace athena
             std::map<std::uint32_t, FieldPoint> seenPoints;
             std::map<std::uint32_t, VoxelId> seenVoxels;
             std::queue<PointId> frontier;
-
-            auto toSuperVoxel = [this](Point const& p)
-            {
-                auto v = (p - mMin) / mSvDelta;
-                Point id;
-                id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
-                id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
-
-                // Check if either of the coordinates of the id are beyond
-                // the edge of the grid.
-                id.x = (id.x < mSvSize) ? id.x : id.x - 1;
-                id.y = (id.y < mSvSize) ? id.y : id.y - 1;
-                return id;
-            };
-
-            auto evalPoint = [this, toSuperVoxel](Point const& p)
-            {
-                // We need to figure out which super-voxel this point belongs to.
-                auto id = toSuperVoxel(p);
-
-                auto svHash = BsoidHash32::hash(id.x, id.y);
-                SuperVoxel sv = mSuperVoxels[svHash];
-                auto val = sv.eval(p);
-                auto g = sv.grad(p);
-                return FieldPoint(p, val, g, svHash);
-            };
-
-            auto findPoint = [this, &seenPoints, evalPoint](PointId const& id)
-            {
-                auto entry = seenPoints.find(BsoidHash32::hash(id.x, id.y));
-                if (entry != seenPoints.end())
-                {
-                    // We have seen this point already, so grab it from our list.
-                    return (*entry).second;
-                }
-                else
-                {
-                    // We haven't seen this point yet, so we need to add it
-                    // to our list.
-                    auto pt = createCellPoint(id, mGridDelta);
-                    auto vp = evalPoint(pt);
-                    auto hash = BsoidHash32::hash(id.x, id.y);
-                    seenPoints.insert(
-                        std::pair<std::uint32_t, FieldPoint>(hash, vp));
-                    return vp;
-                }
-            };
-
-            auto generateVoxel = [this, findPoint](Voxel& v)
-            {
-                int d = 0;
-                for (auto& decal : VoxelDecals)
-                {
-                    auto decalId = v.id + decal;
-                    v.points[d] = findPoint(decalId);
-                    ++d;
-                }
-            };
 
             auto getEdges = [this](Voxel const& v)
             {
@@ -308,11 +284,11 @@ namespace athena
             // voxels are actually on the surface itself.
             {
                 using atlas::math::Point2;
-                auto containsSurface = [this, generateVoxel, getEdges](Voxel const& v)
+                auto containsSurface = [this, getEdges](Voxel const& v)
                 {
                     // First fill in the voxel points.
                     Voxel voxel = v;
-                    generateVoxel(voxel);
+                    fillVoxel(voxel);
 
                     // Now that we have them, let's check to see if the voxel
                     // is indeed in the surface.
@@ -422,7 +398,7 @@ namespace athena
 
                 // Now fill its values.
                 Voxel v(top);
-                generateVoxel(v);
+                fillVoxel(v);
 
                 // Check how many edges cross the surface.
                 auto edges = getEdges(v);
@@ -455,216 +431,6 @@ namespace athena
 
                 mVoxels.push_back(v);
             }
-        }
-
-        std::vector<athena::polygonizer::Voxel> CrossSection::findShadowVoxels()
-        {
-            using atlas::math::Point4;
-            using atlas::math::Point;
-
-            std::map<std::uint32_t, FieldPoint> seenPoints;
-            std::map<std::uint32_t, VoxelId> seenVoxels;
-            std::queue<PointId> frontier;
-
-            auto toSuperVoxel = [this](Point const& p)
-            {
-                auto v = (p - mMin) / mSvDelta;
-                Point id;
-                id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
-                id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
-
-                // Check if either of the coordinates of the id are beyond
-                // the edge of the grid.
-                id.x = (id.x < mSvSize) ? id.x : id.x - 1;
-                id.y = (id.y < mSvSize) ? id.y : id.y - 1;
-                return id;
-            };
-
-            auto evalField = [this, toSuperVoxel](Point const& p)
-            {
-                auto id = toSuperVoxel(p);
-
-                auto svHash = BsoidHash32::hash(id.x, id.y);
-                SuperVoxel sv = mSuperVoxels[svHash];
-                auto val = sv.eval(p);
-                auto g = sv.grad(p);
-                return FieldPoint(p, val, g, svHash);
-            };
-
-            auto findPoint = [this, &seenPoints, evalField](PointId const& id)
-            {
-                auto entry = seenPoints.find(BsoidHash32::hash(id.x, id.y));
-                if (entry != seenPoints.end())
-                {
-                    // We have seen this point already, so grab it from our list.
-                    return (*entry).second;
-                }
-                else
-                {
-                    // We haven't seen this point yet, so we need to add it
-                    // to our list.
-                    auto pt = createCellPoint(id, mGridDelta);
-                    auto vp = evalField(pt);
-                    auto hash = BsoidHash32::hash(id.x, id.y);
-                    seenPoints.insert(
-                        std::pair<std::uint32_t, FieldPoint>(hash, vp));
-                    return vp;
-                }
-            };
-
-            auto generateVoxel = [this, findPoint](Voxel& v)
-            {
-                int d = 0;
-                for (auto& decal : VoxelDecals)
-                {
-                    auto decalId = v.id + decal;
-                    v.points[d] = findPoint(decalId);
-                    ++d;
-                }
-            };
-
-            auto getEdges = [this](Voxel const& v)
-            {
-                FieldPoint start, end;
-                int edgeId = 0;
-                std::vector<int> edges;
-
-                for (std::size_t i = 0; i < v.points.size(); ++i)
-                {
-                    start = v.points[i];
-                    end = v.points[(i + 1) % v.points.size()];
-                    float val1 = start.value.w - mMagic;
-                    float val2 = end.value.w - mMagic;
-
-                    // All that we care about is the change in sign. If there
-                    // is a change, we know the surface crosses this edge.
-                    if ((glm::sign(val1) == 1 && glm::sign(val2) == 1) ||
-                        glm::sign(val1) != glm::sign(val2))
-                    {
-                        edges.push_back(edgeId);
-                    }
-                    edgeId++;
-                }
-                return edges;
-            };
-
-            auto shadowField = [this](FieldPoint const& p)
-            {
-                return glm::length(p.g - glm::proj(p.g, mUnitNormal));
-            };
-
-            auto containsShadow = [this, shadowField](Voxel const& v)
-            {
-                std::array<FieldPoint, 4> shadowPoints;
-                {
-                    int i = 0;
-                    for (auto& pt : v.points)
-                    {
-                        float shadow = shadowField(pt);
-                        FieldPoint shadowPoint = { pt.value.xyz(), shadow };
-                        shadowPoints[i] = shadowPoint;
-                        ++i;
-                    }
-                }
-
-                FieldPoint start, end;
-                const float shadowMagic = 0.1f;
-                for (std::size_t i = 0; i < shadowPoints.size(); ++i)
-                {
-                    start = shadowPoints[i];
-                    end = shadowPoints[(i + 1) % shadowPoints.size()];
-                    float val1 = start.value.w - shadowMagic;
-                    float val2 = end.value.w - shadowMagic;
-                    if (glm::sign(val1) != glm::sign(val2))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            };
-
-            // Before we begin, initialize our maps with all of our voxels.
-            for (auto& voxel : mVoxels)
-            {
-                int p = 0;
-                for (auto& decal : VoxelDecals)
-                {
-                    auto decalId = voxel.id + decal;
-                    auto hash = BsoidHash32::hash(decalId.x, decalId.y);
-                    seenPoints.insert(
-                        std::pair<std::uint32_t, FieldPoint>(
-                            hash, voxel.points[p]));
-                    ++p;
-                }
-            }
-
-            frontier.push(mVoxels[0].id);
-            std::vector<Voxel> shadowVoxels;
-
-            while (!frontier.empty())
-            {
-                auto top = frontier.front();
-                frontier.pop();
-
-                // Check if we have seen this voxel before.
-                if (seenVoxels.find(BsoidHash32::hash(top.x, top.y)) !=
-                    seenVoxels.end())
-                {
-                    continue;
-                }
-                else
-                {
-                    seenVoxels.insert(
-                        std::pair<std::uint32_t, VoxelId>(
-                            BsoidHash32::hash(top.x, top.y), top));
-                }
-
-                Voxel v(top);
-                generateVoxel(v);
-
-                auto edges = getEdges(v);
-                if (edges.empty())
-                {
-                    continue;
-                }
-
-                for (auto& edge : edges)
-                {
-                    auto decal = EdgeDecals.at(edge);
-
-                    auto neighbourDecal = v.id;
-                    neighbourDecal.x += decal.x;
-                    neighbourDecal.y += decal.y;
-
-                    if (!validVoxel(Voxel(neighbourDecal)))
-                    {
-                        continue;
-                    }
-
-                    frontier.push(neighbourDecal);
-                }
-
-                // Check if the voxel has part of a shadow region. If it does,
-                // store it.
-                if (containsShadow(v))
-                {
-                    Voxel shadowVoxel;
-                    int i = 0;
-                    for (auto& pt : v.points)
-                    {
-                        FieldPoint shadowPoint = pt;
-                        shadowPoint.value.w = shadowField(pt);
-                        shadowVoxel.points[i] = shadowPoint;
-                        ++i;
-                    }
-
-                    shadowVoxels.push_back(shadowVoxel);
-                }
-            }
-
-            DEBUG_LOG_V("Found %d shadow voxels.\n", shadowVoxels.size());
-            return shadowVoxels;
         }
 
         std::vector<LineSegment> CrossSection::generateLineSegments( 
@@ -813,125 +579,6 @@ namespace athena
             }
 
             return segments;
-       }
-
-       std::vector<FieldPoint> CrossSection::generateShadowPoints(
-           std::vector<Voxel> const& voxels)
-       {
-           using atlas::math::Point;
-           using atlas::math::Normal;
-
-           std::map<std::uint64_t, FieldPoint> computedPoints;
-           const float shadowMagic = 0.1f;
-
-           auto interpolate = [=](FieldPoint const& p1, FieldPoint const& p2)
-           {
-               using atlas::math::Point2;
-
-               auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
-                   (shadowMagic - p1.value.w) / (p2.value.w - p1.value.w));
-               return FieldPoint(pt, 0.0f);
-           };
-
-           auto generatePoint =
-               [&computedPoints, interpolate, this](PointId const& p1,
-                   PointId const& p2, FieldPoint const& fp1,
-                   FieldPoint const& fp2)
-           {
-               auto h1 = BsoidHash32::hash(p1.x, p1.y);
-               auto h2 = BsoidHash32::hash(p2.x, p2.y);
-
-               auto edgeHash1 = BsoidHash64::hash(h1, h2);
-               auto edgeHash2 = BsoidHash64::hash(h2, h1);
-
-               auto entry1 = computedPoints.find(edgeHash1);
-               auto entry2 = computedPoints.find(edgeHash2);
-
-               if (entry1 != computedPoints.end() ||
-                   entry2 != computedPoints.end())
-               {
-                   if (entry1 != computedPoints.end())
-                   {
-                       return (*entry1).second;
-                   }
-                   
-                   return (*entry2).second;
-               }
-               else
-               {
-                   auto pt = interpolate(fp1, fp2);
-                   computedPoints.insert(
-                       std::pair<std::uint64_t, FieldPoint>(edgeHash1, pt));
-                   return pt;
-               }
-           };
-
-           for (auto& voxel : voxels)
-           {
-               std::uint32_t voxelIndex = 0;
-               std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
-               for (std::size_t i = 0; i < 4; ++i)
-               {
-                   if (atlas::core::leq(voxel.points[i].value.w, shadowMagic))
-                   {
-                       voxelIndex |= coeffs[i];
-                   }
-               }
-
-               if (EdgeTable[voxelIndex] == 0)
-               {
-                   continue;
-               }
-
-               std::vector<FieldPoint> vertList(4);
-                if (EdgeTable[voxelIndex] & 1)
-                {
-                    // Edge 0.
-                    vertList[0] = generatePoint(
-                        voxel.id + VoxelDecals[0],
-                        voxel.id + VoxelDecals[1],
-                        voxel.points[0],
-                        voxel.points[1]);
-                }
-
-                if (EdgeTable[voxelIndex] & 2)
-                {
-                    // Edge 1.
-                    vertList[1] = generatePoint(
-                        voxel.id + VoxelDecals[1],
-                        voxel.id + VoxelDecals[2],
-                        voxel.points[1],
-                        voxel.points[2]);
-                }
-
-
-                if (EdgeTable[voxelIndex] & 4)
-                {
-                    // Edge 2.
-                    vertList[2] = generatePoint(
-                        voxel.id + VoxelDecals[2],
-                        voxel.id + VoxelDecals[3],
-                        voxel.points[2],
-                        voxel.points[3]);
-                }
-
-                if (EdgeTable[voxelIndex] & 8)
-                {
-                    // Edge 3.
-                    vertList[3] = generatePoint(
-                        voxel.id + VoxelDecals[3],
-                        voxel.id + VoxelDecals[0],
-                        voxel.points[3],
-                        voxel.points[0]);
-                }
-           }
-
-           std::vector<FieldPoint> result;
-           std::transform(computedPoints.begin(), computedPoints.end(), 
-               std::back_inserter(result), 
-               [](std::pair<std::uint64_t, FieldPoint> const& pair)
-           { return pair.second; });
-           return result;
        }
 
        void CrossSection::convertToContour(
