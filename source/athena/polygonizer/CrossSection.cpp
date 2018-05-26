@@ -19,6 +19,16 @@ namespace athena
 {
     namespace polygonizer
     {
+        struct CrossSection::CrossSectionImpl
+        {
+            CrossSectionImpl()
+            { }
+
+            CrossSectionImpl(CrossSectionImpl const& imp)
+            { }
+
+        };
+
         CrossSection::CrossSection(SlicingAxes const& axis, 
             atlas::math::Point const& min, atlas::math::Point const& max, 
             std::uint32_t gridSize, std::uint32_t svSize, float isoValue,
@@ -64,6 +74,21 @@ namespace athena
 
             mUnitNormal = glm::normalize(mNormal);
         }
+
+        CrossSection::CrossSection(CrossSection const& cs) :
+            mImpl(std::make_unique<CrossSectionImpl>(*cs.mImpl))
+        {
+
+        }
+
+        CrossSection::CrossSection(CrossSection&& cs) :
+            mImpl(std::move(cs.mImpl))
+        {
+
+        }
+
+        CrossSection::~CrossSection()
+        { }
 
         void CrossSection::constructLattice()
         {
@@ -237,6 +262,13 @@ namespace athena
                 v.points[d] = findVoxelPoint(decalId);
                 ++d;
             }
+        }
+
+        Voxel CrossSection::findSurfaceVoxel(Voxel const& start)
+        {
+            using atlas::math::Point2;
+            
+            // Check if the provided voxel has the
         }
 
         void CrossSection::marchVoxelOnSurface(std::vector<Voxel> const& seeds)

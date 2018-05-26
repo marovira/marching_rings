@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <map>
+#include <memory>
 
 namespace athena
 {
@@ -27,7 +28,9 @@ namespace athena
             CrossSection(SlicingAxes const& axis, atlas::math::Point const& min,
                 atlas::math::Point const& max, std::uint32_t gridSize,
                 std::uint32_t svSize, float isoValue, tree::BlobTree* tree);
-            ~CrossSection() = default;
+            CrossSection(CrossSection const& cs);
+            CrossSection(CrossSection&& cs);
+            ~CrossSection();
 
             void constructLattice();
             void constructContour();
@@ -77,6 +80,9 @@ namespace athena
             std::map<std::uint32_t, VoxelId> mSeenVoxels;
 
             std::size_t mLargestContourSize;
+
+            struct CrossSectionImpl;
+            std::unique_ptr<CrossSectionImpl> mImpl;
         };
     }
 }
