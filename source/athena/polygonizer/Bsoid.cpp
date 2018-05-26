@@ -330,52 +330,6 @@ namespace athena
                 ++i;
             }
 
-            // Now assemble the a list containing the number of contours that
-            // each slice has.
-            std::vector<std::size_t> contoursPerSlice;
-            for (auto& section : mCrossSections)
-            {
-                contoursPerSlice.push_back(section->getContour().size());
-            }
-
-            // Now send them down to the manager and get back the list
-            // of branches.
-            auto branches = manager.findBranches(contoursPerSlice);
-            for (auto& branch : branches)
-            {
-                std::string type;
-                switch (branch.type)
-                {
-                case BranchingManager::BranchType::Cap:
-                    type = "Cap";
-                    break;
-
-                case BranchingManager::BranchType::Branch:
-                    type = "Branch";
-                    break;
-                }
-
-                DEBUG_LOG_V("Found branch in slices (%d, %d) of type %s.",
-                    branch.top, branch.bottom, type.c_str());
-            }
-
-            for (auto& branch : branches)
-            {
-                switch (branch.type)
-                {
-                case BranchingManager::BranchType::Cap:
-                    break;
-
-                case BranchingManager::BranchType::Branch:
-                    // Grab the top cross-section (which is the one prior to the
-                    // branch.)
-                    auto& top = mCrossSections[branch.top];
-                    top->findInflexionPoint();
-                    break;
-                }
-            }
-
-
             // Once we have all of the contour data, send it down to the manager
             // for linking.
             for (auto& section : mCrossSections)
@@ -384,20 +338,6 @@ namespace athena
             }
 
             mMesh = manager.connectContours();
-
-            std::vector<std::vector<Voxel>> voxels;
-            i = 0;
-            for (auto& section : mCrossSections)
-            {
-#if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
-                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
-                    ATHENA_DEBUG_CONTOUR_END);
-#endif
-                voxels.push_back(section->getVoxels());
-                ++i;
-            }
-
-            mLattice.makeLattice(voxels);
 
             std::vector<std::vector<std::vector<FieldPoint>>> contours;
             i = 0;
@@ -499,7 +439,15 @@ namespace athena
                     i++;
                 }
 
-                connectContours();
+                // Once we have all of the contour data, send it down to the manager
+                // for linking.
+                BranchingManager manager;
+                for (auto& section : mCrossSections)
+                {
+                    manager.insertContours(section->getContour());
+                }
+
+                mMesh = manager.connectContours();
 
                 auto stepElapsed = step.elapsed();
                 mLog << "Mesh generated in " << stepElapsed << " seconds.\n";
