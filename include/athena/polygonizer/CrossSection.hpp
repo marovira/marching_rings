@@ -43,10 +43,10 @@ namespace athena
                 atlas::math::Point const& delta);
             atlas::math::Point createCellPoint(glm::u32vec2 const& p,
                 atlas::math::Point const& delta);
-            void fillVoxel(Voxel& v);
 
             FieldPoint findVoxelPoint(PointId const& id);
-            Voxel findSurfaceVoxel(Voxel const& start);
+            void fillVoxel(Voxel& v);
+            bool seenVoxel(VoxelId const& id);
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
 
             std::vector<LineSegment> generateLineSegments(

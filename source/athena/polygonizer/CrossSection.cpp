@@ -65,6 +65,7 @@ namespace athena
             mUnitNormal = glm::normalize(mNormal);
         }
 
+
         void CrossSection::constructLattice()
         {
             using atlas::math::Point;
@@ -239,11 +240,20 @@ namespace athena
             }
         }
 
-        Voxel CrossSection::findSurfaceVoxel(Voxel const& start)
+        bool CrossSection::seenVoxel(VoxelId const& id)
         {
-            using atlas::math::Point2;
-            
-            // Check if the provided voxel has the
+            if (mSeenVoxels.find(BsoidHash32::hash(id.x, id.y)) !=
+                mSeenVoxels.end())
+            {
+                return true;
+            }
+            else
+            {
+                mSeenVoxels.insert(
+                    std::pair<std::uint32_t, VoxelId>(
+                        BsoidHash32::hash(id.x, id.y), id));
+                return false;
+            }
         }
 
         void CrossSection::marchVoxelOnSurface(std::vector<Voxel> const& seeds)
@@ -251,8 +261,6 @@ namespace athena
             using atlas::math::Point4;
             using atlas::math::Point;
 
-            std::map<std::uint32_t, FieldPoint> seenPoints;
-            std::map<std::uint32_t, VoxelId> seenVoxels;
             std::queue<PointId> frontier;
 
             auto getEdges = [this](Voxel const& v)
@@ -388,19 +396,9 @@ namespace athena
                 frontier.pop();
 
                 // Check if we have seen this voxel before.
-                if (seenVoxels.find(BsoidHash32::hash(top.x, top.y)) !=
-                    seenVoxels.end())
+                if (seenVoxel(top))
                 {
-                    // We have, so do nothing.
                     continue;
-                }
-                else
-                {
-                    // We haven't seen it before, so add it to our list and
-                    // proceed.
-                    seenVoxels.insert(
-                        std::pair<std::uint32_t, VoxelId>(
-                            BsoidHash32::hash(top.x, top.y), top));
                 }
 
                 // Now fill its values.
@@ -496,8 +494,6 @@ namespace athena
                 else
                 {
                     auto pt = interpolate(fp1, fp2);
-                    // HACK: This produces twisting on quads if the edges
-                    // don't align. Needs to be fixed in post.
                     auto edgeHash = edgeHash1;
 
                     LinePoint p(pt, edgeHash);
@@ -510,11 +506,11 @@ namespace athena
 
             // Iterate over the set of voxels.
             int k = 0;
+            std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
             for (auto& voxel : voxels)
             {
                 // First compute the cell index for our voxel.
                 std::uint32_t voxelIndex = 0;
-                std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
                 for (std::size_t i = 0; i < 4; ++i)
                 {
                     if (atlas::core::leq(voxel.points[i].value.w, mMagic))
