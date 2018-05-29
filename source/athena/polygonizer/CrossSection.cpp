@@ -198,22 +198,22 @@ namespace athena
                 auto pt = createCellPoint(id, mGridDelta);
 
                 // Now let's figure out which super-voxel contained the point.
-                PointId id;
+                PointId svId;
                 {
                     auto v = (pt - mMin) / mSvDelta;
-                    id.x = static_cast<std::uint32_t>(v[mAxisId.x]);
-                    id.y = static_cast<std::uint32_t>(v[mAxisId.y]);
+                    svId.x = static_cast<std::uint32_t>(v[mAxisId.x]);
+                    svId.y = static_cast<std::uint32_t>(v[mAxisId.y]);
 
                     // Check if either of the coordinates of the id are beyond
                     // the edge of the grid.
-                    id.x = (id.x < mSvSize) ? id.x : id.x - 1;
-                    id.y = (id.y < mSvSize) ? id.y : id.y - 1;
+                    svId.x = (svId.x < mSvSize) ? svId.x : svId.x - 1;
+                    svId.y = (svId.y < mSvSize) ? svId.y : svId.y - 1;
                 }
 
                 // Now that we have the id, let's evaluate the point.
                 FieldPoint fp;
                 {
-                    auto svHash = BsoidHash32::hash(id.x, id.y);
+                    auto svHash = BsoidHash32::hash(svId.x, svId.y);
                     SuperVoxel sv = mSuperVoxels[svHash];
                     auto val = sv.eval(pt);
                     auto g = sv.grad(pt);
