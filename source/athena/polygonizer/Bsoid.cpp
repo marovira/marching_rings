@@ -329,15 +329,12 @@ namespace athena
 
             for (auto& branchCase : branchData)
             {
-                // Regardless of anything we need to grab the shadow points,
-                // so grab them first.
-                // TODO: Figure out how to have this distinguish if we have
-                // multiple inflexion points.
-                auto shadowPoints = 
-                    mCrossSections[branchCase.top]->findShadowPoints();
-
                 if (branchCase.type == BranchingManager::BranchType::Branch)
                 {
+                    // Grab the shadow points first.
+                    auto shadowPoints = 
+                        mCrossSections[branchCase.top]->findShadowPoints();
+
                     // Compute the centre of gravity.
                     Point centre;
                     for (auto& shadowPoint : shadowPoints)
@@ -362,6 +359,7 @@ namespace athena
 
                     auto inflexionPt = glm::mix(centre, projCentre,
                         (mMagic - val1) / (val2 - val1));
+                    float inflexionVal = mTree->eval(inflexionPt);
 
                     // Now that we have the point, create a new cross-section
                     // with this specific height.
@@ -420,7 +418,7 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                section->resizeContours(maxContourSize);
+                //section->resizeContours(maxContourSize);
                 ++i;
             }
 
@@ -431,7 +429,7 @@ namespace athena
                 manager.insertContours(section->getContour());
             }
 
-            mMesh = manager.connectContours();
+            //mMesh = manager.connectContours();
 
             std::vector<std::vector<Voxel>> voxels;
             i = 0;
