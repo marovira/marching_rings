@@ -307,7 +307,7 @@ namespace athena
                 std::transform(names.begin(), names.end(), sliceNames.begin(),
                     std::mem_fun_ref(&std::string::c_str));
                 ImGui::Combo("Cross-section", &mSelectedSlice, sliceNames.data(),
-                    ((int)mSoid.getNumSlices()));
+                    ((int)sliceNames.size()));
             }
 
             ImGui::Dummy(ImVec2(0, 10));
