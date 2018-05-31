@@ -1,6 +1,7 @@
 #include "athena/polygonizer/CrossSection.hpp"
 #include "athena/polygonizer/Hash.hpp"
 #include "athena/polygonizer/Tables.hpp"
+#include "athena/Athena.hpp"
 
 #include <atlas/core/Float.hpp>
 #include <atlas/core/Log.hpp>
@@ -28,6 +29,7 @@ namespace athena
             mGridSize(gridSize),
             mSvSize(svSize),
             mMagic(isoValue),
+            mShadowMagic(0.1f),
             mTree(tree),
             mAxis(axis),
             mLargestContourSize(0)
@@ -117,7 +119,20 @@ namespace athena
         void CrossSection::constructContour()
         {
             auto segments = generateLineSegments(mVoxels);
-            convertToContour(segments);
+            auto contours = convertToContour(segments);
+
+            mContours.insert(mContours.end(),
+                contours.begin(), contours.end());
+
+           // Grab the size of the largest contour.
+           for (auto& contour : mContours)
+           {
+               if (mLargestContourSize < contour.size())
+               {
+                   mLargestContourSize = contour.size();
+               }
+           }
+
 #if defined ATLAS_DEBUG
              validateContour();
 #endif
@@ -144,6 +159,31 @@ namespace athena
             }
         }
 
+        std::vector<FieldPoint> CrossSection::findShadowPoints()
+        {
+            // First we need to march the voxels inside the surface to find
+            // the ones that contain shadow points.
+            auto shadowVoxels = findShadowVoxels();
+
+            // Once we have the shadow voxels we need to convert them into their
+            // corresponding line segments.
+            auto shadowSegments = generateShadowSegments(shadowVoxels);
+
+            // Finally, convert into contours and return.
+            auto shadowContours = convertToContour(shadowSegments);
+
+#if defined(ATHENA_USE_GUI)
+            // Only update our contours and lattices if there is a GUI running.
+            mVoxels.insert(mVoxels.end(), shadowVoxels.begin(),
+                shadowVoxels.end());
+            mContours.insert(mContours.end(), shadowContours.begin(),
+                shadowContours.end());
+#endif
+
+            // TODO: Change this later on.
+            return shadowContours[0];
+        }
+
         std::vector<Voxel> const& CrossSection::getVoxels() const
         {
             return mVoxels;
@@ -158,6 +198,16 @@ namespace athena
         std::size_t CrossSection::getLargestContourSize() const
         {
             return mLargestContourSize;
+        }
+
+        atlas::math::Normal CrossSection::getNormal() const
+        {
+            return glm::normalize(mNormal);
+        }
+
+        std::pair<std::uint32_t, std::uint32_t> CrossSection::getResolutions() const
+        {
+            return { mGridSize, mSvSize };
         }
 
         atlas::math::Point CrossSection::createCellPoint(std::uint32_t x,
@@ -584,17 +634,18 @@ namespace athena
             return segments;
        }
 
-       void CrossSection::convertToContour(
+       std::vector<std::vector<FieldPoint>> CrossSection::convertToContour(
            std::vector<LineSegment> const& segments)
        {
            if (segments.empty())
            {
-               return;
+               return {};
            }
 
            std::unordered_map<std::uint64_t, FieldPoint> vertices;
            std::map<std::uint64_t, 
                std::pair<std::size_t, std::uint64_t>> contourMap;
+           std::vector<std::vector<FieldPoint>> resultContours;
 
            for (std::size_t i = 0; i < segments.size(); ++i)
            {
@@ -642,7 +693,7 @@ namespace athena
                    {
                        // We have encountered a branch. So first save the 
                        // current contour and then clear it.
-                       mContours.push_back(contour);
+                       resultContours.push_back(contour);
                        contour.clear();
 
                        // Now we need to select the next point. We can do this
@@ -674,16 +725,9 @@ namespace athena
                }
            }
 
-           mContours.push_back(contour);
+           resultContours.push_back(contour);
+           return resultContours;
 
-           // Grab the size of the largest contour.
-           for (auto& contour : mContours)
-           {
-               if (mLargestContourSize < contour.size())
-               {
-                   mLargestContourSize = contour.size();
-               }
-           }
        }
 
        void CrossSection::subdivideContour(int idx, std::size_t size)
@@ -793,6 +837,277 @@ namespace athena
            }
 
            contour = subDivContour;
+       }
+
+       float CrossSection::shadowField(FieldPoint const& p)
+       {
+           return glm::length(p.g - glm::proj(p.g, getNormal()));
+       }
+
+       std::vector<Voxel> CrossSection::findShadowVoxels()
+       {
+           using atlas::math::Point4;
+           using atlas::math::Point;
+
+           std::queue<PointId> frontier;
+
+           auto getEdges = [this](Voxel const& v)
+           {
+               FieldPoint start, end;
+               int edgeId = 0;
+               std::vector<int> edges;
+
+               for (std::size_t i = 0; i < v.points.size(); ++i)
+               {
+                   start = v.points[i];
+                   end = v.points[(i + 1) % v.points.size()];
+                   float val1 = start.value.w - mMagic;
+                   float val2 = end.value.w - mMagic;
+
+                   if (glm::sign(val1) != glm::sign(val2) ||
+                       (glm::sign(val1) == 1 && glm::sign(val2) == 1))
+                   {
+                       edges.push_back(edgeId);
+                   }
+                   edgeId++;
+               }
+
+               return edges;
+           };
+
+           auto containsShadow = [this](Voxel const& v)
+           {
+               std::array<FieldPoint, 4> shadowPoints;
+               {
+                   int i = 0;
+                   for (auto& pt : v.points)
+                   {
+                       float shadow = shadowField(pt);
+                       FieldPoint shadowPoint = { pt.value.xyz(), shadow };
+                       shadowPoints[i] = shadowPoint;
+                       ++i;
+                   }
+               }
+
+               FieldPoint start, end;
+               for (std::size_t i = 0; i < shadowPoints.size(); ++i)
+               {
+                   start = shadowPoints[i];
+                   end = shadowPoints[(i + 1) % shadowPoints.size()];
+
+                   float val1 = start.value.w - mShadowMagic;
+                   float val2 = end.value.w - mShadowMagic;
+                   if (glm::sign(val1) != glm::sign(val2))
+                   {
+                       return true;
+                   }
+               }
+
+               return false;
+           };
+
+           frontier.push(mVoxels[0].id);
+           std::vector<Voxel> shadowVoxels;
+           std::map<std::uint32_t, VoxelId> seenVoxels;
+
+           while (!frontier.empty())
+           {
+               auto top = frontier.front();
+               frontier.pop();
+
+               if (seenVoxels.find(BsoidHash32::hash(top.x, top.y)) !=
+                   seenVoxels.end())
+               {
+                   continue;
+               }
+               else
+               {
+                   seenVoxels.insert(
+                       std::pair<std::uint32_t, VoxelId>(
+                           BsoidHash32::hash(top.x, top.y), top));
+               }
+
+               Voxel v(top);
+               fillVoxel(v);
+
+               auto edges = getEdges(v);
+               if (edges.empty())
+               {
+                   continue;
+               }
+
+               for (auto& edge : edges)
+               {
+                   auto decal = EdgeDecals.at(edge);
+
+                   auto neighbourDecal = v.id;
+                   neighbourDecal.x += decal.x;
+                   neighbourDecal.y += decal.y;
+
+                   if (!validVoxel(Voxel(neighbourDecal)))
+                   {
+                       continue;
+                   }
+
+                   frontier.push(neighbourDecal);
+               }
+
+               if (containsShadow(v))
+               {
+                   // Now we need to change the points from regular field values
+                   // to the shadow field.
+                   Voxel shadowVoxel;
+                   int i = 0;
+                   for (auto& pt : v.points)
+                   {
+                       FieldPoint shadowPoint = pt;
+                       shadowPoint.value.w = shadowField(pt);
+                       shadowVoxel.points[i] = shadowPoint;
+                       ++i;
+                   }
+                   
+                   shadowVoxels.push_back(shadowVoxel);
+               }
+           }
+
+           return shadowVoxels;
+       }
+
+       std::vector<LineSegment> CrossSection::generateShadowSegments(
+           std::vector<Voxel> const& shadowVoxels)
+       {
+           using atlas::math::Point;
+           using atlas::math::Normal;
+
+           std::map<std::uint64_t, LinePoint> computedPoints;
+           std::vector<LineSegment> shadowSegments;
+
+           auto interpolate = [this](FieldPoint const& p1, FieldPoint const& p2)
+           {
+               using atlas::math::Point2;
+
+               auto pt = glm::mix(p1.value.xyz(), p2.value.xyz(),
+                   (mShadowMagic - p1.value.w) / (p2.value.w - p1.value.w));
+               FieldPoint p;
+               p.value.xyz = pt;
+               return p;
+           };
+
+           auto generatePoint = 
+               [&computedPoints, interpolate, this](PointId const& p1,
+                   PointId const& p2, FieldPoint const& fp1,
+                   FieldPoint const& fp2)
+           {
+               auto h1 = BsoidHash32::hash(p1.x, p1.y);
+               auto h2 = BsoidHash32::hash(p2.x, p2.y);
+
+               auto edgeHash1 = BsoidHash64::hash(h1, h2);
+               auto edgeHash2 = BsoidHash64::hash(h2, h1);
+
+               auto entry1 = computedPoints.find(edgeHash1);
+               auto entry2 = computedPoints.find(edgeHash2);
+
+               if (entry1 != computedPoints.end() ||
+                   entry2 != computedPoints.end())
+               {
+                   if (entry1 != computedPoints.end())
+                   {
+                       return (*entry1).second;
+                   }
+
+                   return (*entry2).second;
+               }
+               else
+               {
+                   auto pt = interpolate(fp1, fp2);
+                   auto edgeHash = edgeHash1;
+
+                   LinePoint p(pt, edgeHash);
+                   computedPoints.insert(
+                       std::pair<std::uint64_t, LinePoint>(edgeHash1, p));
+                   return p;
+               }
+           };
+
+            // Iterate over the set of voxels.
+            int k = 0;
+            std::vector<std::uint32_t> coeffs = { 1, 2, 4, 8 };
+            for (auto& voxel : shadowVoxels)
+            {
+                // First compute the cell index for our voxel.
+                std::uint32_t voxelIndex = 0;
+                for (std::size_t i = 0; i < 4; ++i)
+                {
+                    if (atlas::core::leq(voxel.points[i].value.w, mShadowMagic))
+                    {
+                        voxelIndex |= coeffs[i];
+                    }
+                }
+
+                // If a voxel has at least one tangent point and the rest are
+                // inside the surface, then just skip it.
+                if (voxelIndex == 15)
+                {
+                    continue;
+                }
+
+                // Safety check.
+                ATLAS_ASSERT(EdgeTable[voxelIndex] != 0,
+                    "Voxel should not be empty by this point.");
+
+                std::vector<LinePoint> vertList(4);
+                if (EdgeTable[voxelIndex] & 1)
+                {
+                    // Edge 0.
+                    vertList[0] = generatePoint(
+                        voxel.id + VoxelDecals[0],
+                        voxel.id + VoxelDecals[1],
+                        voxel.points[0],
+                        voxel.points[1]);
+                }
+
+                if (EdgeTable[voxelIndex] & 2)
+                {
+                    // Edge 1.
+                    vertList[1] = generatePoint(
+                        voxel.id + VoxelDecals[1],
+                        voxel.id + VoxelDecals[2],
+                        voxel.points[1],
+                        voxel.points[2]);
+                }
+
+
+                if (EdgeTable[voxelIndex] & 4)
+                {
+                    // Edge 2.
+                    vertList[2] = generatePoint(
+                        voxel.id + VoxelDecals[2],
+                        voxel.id + VoxelDecals[3],
+                        voxel.points[2],
+                        voxel.points[3]);
+                }
+
+                if (EdgeTable[voxelIndex] & 8)
+                {
+                    // Edge 3.
+                    vertList[3] = generatePoint(
+                        voxel.id + VoxelDecals[3],
+                        voxel.id + VoxelDecals[0],
+                        voxel.points[3],
+                        voxel.points[0]);
+                }
+
+                for (int i = 0; LineTable[voxelIndex][i] != -1; i += 2)
+                {
+                    auto start = vertList[LineTable[voxelIndex][i + 0]];
+                    auto end   = vertList[LineTable[voxelIndex][i + 1]];
+                    shadowSegments.emplace_back(start, end);
+                }
+                ++k;
+            }
+
+
+           return shadowSegments;
        }
 
        bool CrossSection::validVoxel(Voxel const& v) const

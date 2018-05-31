@@ -34,9 +34,13 @@ namespace athena
             void constructContour();
             void resizeContours(std::size_t size);
 
+            std::vector<FieldPoint> findShadowPoints();
+
             std::vector<Voxel> const& getVoxels() const;
             std::vector<std::vector<FieldPoint>> const& getContour() const;
             std::size_t getLargestContourSize() const;
+            atlas::math::Normal getNormal() const;
+            std::pair<std::uint32_t, std::uint32_t> getResolutions() const;
 
         private:
             atlas::math::Point createCellPoint(std::uint32_t x, std::uint32_t y,
@@ -49,10 +53,17 @@ namespace athena
             bool seenVoxel(VoxelId const& id);
             void marchVoxelOnSurface(std::vector<Voxel> const& seeds);
 
+
             std::vector<LineSegment> generateLineSegments(
                 std::vector<Voxel> const& voxels);
-            void convertToContour(std::vector<LineSegment> const& segments);
+            std::vector<std::vector<FieldPoint>> 
+                convertToContour(std::vector<LineSegment> const& segments);
             void subdivideContour(int idx, std::size_t size);
+
+            float shadowField(FieldPoint const& p);
+            std::vector<Voxel> findShadowVoxels();
+            std::vector<LineSegment> generateShadowSegments(
+                std::vector<Voxel> const& shadowVoxels);
 
             bool validVoxel(Voxel const& v) const;
 
@@ -65,6 +76,7 @@ namespace athena
             std::uint32_t mGridSize, mSvSize;
             glm::uvec2 mAxisId;
             float mMagic;
+            float mShadowMagic;
 
             tree::BlobTree* mTree;
             SlicingAxes mAxis;
