@@ -302,31 +302,125 @@ namespace athena
 
         void Bsoid::constructMesh()
         {
+            using atlas::math::Point;
+
             atlas::core::Timer<float> global;
             atlas::core::Timer<float> t;
 
             // First we need to subdivide the contours into the largest
-            // size that we have.
-            std::size_t size = 0;
+            // size that we have. Simulatenously grab the number of conours
+            // per branch.
+            std::size_t maxContourSize = 0;
+            std::vector<std::size_t> branches;
             for (auto& section : mCrossSections)
             {
-                if (size < section->getLargestContourSize())
+                branches.push_back(section->getContour().size());
+
+                if (maxContourSize < section->getLargestContourSize())
                 {
-                    size = section->getLargestContourSize();
+                    maxContourSize = section->getLargestContourSize();
                 }
             }
+
+            // Now we have the branching manager tell us which layers need to 
+            // be processed for branching.
+            BranchingManager manager;
+            auto branchData = manager.findBranches(branches);
+
+            for (auto& branchCase : branchData)
+            {
+                // Regardless of anything we need to grab the shadow points,
+                // so grab them first.
+                // TODO: Figure out how to have this distinguish if we have
+                // multiple inflexion points.
+                auto shadowPoints = 
+                    mCrossSections[branchCase.top]->findShadowPoints();
+
+                if (branchCase.type == BranchingManager::BranchType::Branch)
+                {
+                    // Compute the centre of gravity.
+                    Point centre;
+                    for (auto& shadowPoint : shadowPoints)
+                    {
+                        centre += shadowPoint.value.xyz();
+                    }
+                    centre /= static_cast<float>(shadowPoints.size());
+
+                    // Once we have the centre of gravity, project it down to
+                    // the lower layer.
+                    auto lowNormal =
+                        mCrossSections[branchCase.bottom]->getNormal();
+
+                    // Project the point.
+                    auto projCentre = glm::proj(centre, lowNormal);
+
+                    // Now that we have the projected version, we need to
+                    // sample our field at both ends to interpolate and find 
+                    // the inflexion point.
+                    float val1 = mTree->eval(centre);
+                    float val2 = mTree->eval(projCentre);
+
+                    auto inflexionPt = glm::mix(centre, projCentre,
+                        (mMagic - val1) / (val2 - val1));
+
+                    // Now that we have the point, create a new cross-section
+                    // with this specific height.
+                    auto resolution =
+                        mCrossSections[branchCase.top]->getResolutions();
+                    atlas::math::Point min, max;
+                    auto box = mTree->getTreeBox();
+
+                    switch (mAxis)
+                    {
+                    case SlicingAxes::XAxis:
+                        max = Point(inflexionPt.x, box.pMax.yz());
+                        min = Point(inflexionPt.x, box.pMin.yz());
+                        break;
+
+                    case SlicingAxes::YAxis:
+                        max = Point(box.pMax.x, inflexionPt.y, box.pMax.z);
+                        min = Point(box.pMin.x, inflexionPt.y, box.pMin.z);
+                        break;
+
+                    case SlicingAxes::ZAxis:
+                        max = Point(box.pMax.xy(), inflexionPt.z);
+                        min = Point(box.pMin.xy(), inflexionPt.z);
+                        break;
+                    }
+
+                    mCrossSections.push_back(
+                        std::make_unique<CrossSection>(mAxis, min, max,
+                            resolution.first, resolution.second, mMagic, 
+                            mTree.get()));
+
+                    // With the cross-section in place, now create the lattice
+                    // and the contours for it.
+                    std::size_t newSlice = mCrossSections.size() - 1;
+                    mCrossSections[newSlice]->constructLattice();
+                    mCrossSections[newSlice]->constructContour();
+                    auto newSize = mCrossSections[newSlice]->getLargestContourSize();
+
+                    // Update the max size of the contours if need be.
+                    maxContourSize = (maxContourSize < newSize) ? 
+                        newSize : maxContourSize;
+                }
+                else if (branchCase.type == BranchingManager::BranchType::Cap)
+                {
+                    // Handle caps here.
+                }
+            }
+
 
             // Now that we have it, lets resize all of the contours. Again
             // this can be done in parallel.
             int i = 0;
-            BranchingManager manager;
             for (auto& section : mCrossSections)
             {
 #if defined (ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                section->resizeContours(size);
+                section->resizeContours(maxContourSize);
                 ++i;
             }
 
@@ -338,6 +432,20 @@ namespace athena
             }
 
             mMesh = manager.connectContours();
+
+            std::vector<std::vector<Voxel>> voxels;
+            i = 0;
+            for (auto& section : mCrossSections)
+            {
+#if defined(ATLAS_DEBUG) && (ATHENA_DEBUG_CONTOURS)
+                ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
+                    ATHENA_DEBUG_CONTOUR_END);
+#endif
+                voxels.push_back(section->getVoxels());
+                ++i;
+            }
+
+            mLattice.makeLattice(voxels);
 
             std::vector<std::vector<std::vector<FieldPoint>>> contours;
             i = 0;
