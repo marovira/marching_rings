@@ -202,7 +202,7 @@ namespace athena
 
         atlas::math::Normal CrossSection::getNormal() const
         {
-            return glm::normalize(mNormal);
+            return mNormal;
         }
 
         std::pair<std::uint32_t, std::uint32_t> CrossSection::getResolutions() const
