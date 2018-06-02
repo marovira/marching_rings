@@ -5,6 +5,7 @@
 #include <atlas/core/Macros.hpp>
 #include <atlas/core/Assert.hpp>
 #include <atlas/core/Log.hpp>
+#include <atlas/core/Float.hpp>
 
 #include <numeric>
 #include <functional>
@@ -322,93 +323,6 @@ namespace athena
                 }
             }
 
-            // Now we have the branching manager tell us which layers need to 
-            // be processed for branching.
-            BranchingManager manager;
-            auto branchData = manager.findBranches(branches);
-
-            for (auto& branchCase : branchData)
-            {
-                if (branchCase.type == BranchingManager::BranchType::Branch)
-                {
-                    // Grab the shadow points first.
-                    auto shadowPoints = 
-                        mCrossSections[branchCase.top]->findShadowPoints();
-
-                    // Compute the centre of gravity.
-                    Point centre;
-                    for (auto& shadowPoint : shadowPoints)
-                    {
-                        centre += shadowPoint.value.xyz();
-                    }
-                    centre /= static_cast<float>(shadowPoints.size());
-
-                    // Once we have the centre of gravity, project it down to
-                    // the lower layer.
-                    auto lowNormal =
-                        mCrossSections[branchCase.bottom]->getNormal();
-
-                    // Project the point.
-                    auto projCentre = glm::proj(centre, lowNormal);
-
-                    // Now that we have the projected version, we need to
-                    // sample our field at both ends to interpolate and find 
-                    // the inflexion point.
-                    float val1 = mTree->eval(centre);
-                    float val2 = mTree->eval(projCentre);
-
-                    auto inflexionPt = glm::mix(centre, projCentre,
-                        (mMagic - val1) / (val2 - val1));
-                    float inflexionVal = mTree->eval(inflexionPt);
-
-                    // Now that we have the point, create a new cross-section
-                    // with this specific height.
-                    auto resolution =
-                        mCrossSections[branchCase.top]->getResolutions();
-                    atlas::math::Point min, max;
-                    auto box = mTree->getTreeBox();
-
-                    switch (mAxis)
-                    {
-                    case SlicingAxes::XAxis:
-                        max = Point(inflexionPt.x, box.pMax.yz());
-                        min = Point(inflexionPt.x, box.pMin.yz());
-                        break;
-
-                    case SlicingAxes::YAxis:
-                        max = Point(box.pMax.x, inflexionPt.y, box.pMax.z);
-                        min = Point(box.pMin.x, inflexionPt.y, box.pMin.z);
-                        break;
-
-                    case SlicingAxes::ZAxis:
-                        max = Point(box.pMax.xy(), inflexionPt.z);
-                        min = Point(box.pMin.xy(), inflexionPt.z);
-                        break;
-                    }
-
-                    mCrossSections.push_back(
-                        std::make_unique<CrossSection>(mAxis, min, max,
-                            resolution.first, resolution.second, mMagic, 
-                            mTree.get()));
-
-                    // With the cross-section in place, now create the lattice
-                    // and the contours for it.
-                    std::size_t newSlice = mCrossSections.size() - 1;
-                    mCrossSections[newSlice]->constructLattice();
-                    mCrossSections[newSlice]->constructContour();
-                    auto newSize = mCrossSections[newSlice]->getLargestContourSize();
-
-                    // Update the max size of the contours if need be.
-                    maxContourSize = (maxContourSize < newSize) ? 
-                        newSize : maxContourSize;
-                }
-                else if (branchCase.type == BranchingManager::BranchType::Cap)
-                {
-                    // Handle caps here.
-                }
-            }
-
-
             // Now that we have it, lets resize all of the contours. Again
             // this can be done in parallel.
             int i = 0;
@@ -418,8 +332,101 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                //section->resizeContours(maxContourSize);
+                section->resizeContours(maxContourSize);
                 ++i;
+            }
+
+            // Now we have the branching manager tell us which layers need to 
+            // be processed for branching.
+            BranchingManager manager;
+            auto branchData = manager.findBranches(branches);
+
+            for (auto& branchCase : branchData)
+            {
+                if (branchCase.type == BranchingManager::BranchType::Branch)
+                {
+                    // Grab the bottom branch.
+                    auto& bottom = mCrossSections[branchCase.bottom];
+                    auto& top = mCrossSections[branchCase.top];
+
+                    // Compute the centres of gravity of each contour.
+                    std::size_t numContours = bottom->getContour().size();
+                    std::vector<Point> centres(numContours);
+                    {
+                        std::size_t i = 0;
+                        for (auto& contour : bottom->getContour())
+                        {
+                            centres[i] = Point(0.0f);
+                            for (auto& pt : contour)
+                            {
+                                centres[i] += pt.value.xyz();
+                            }
+                            centres[i] /= static_cast<float>(contour.size());
+                            ++i;
+                        }
+                    }
+
+                    // Now that we have them, let's compute the mid-point
+                    // between each pair of centres.
+                    for (std::size_t i = 0; i < numContours - 1; ++i)
+                    {
+                        auto pt1 = centres[i + 0];
+                        auto pt2 = centres[i + 1];
+
+                        // Compute the mid-point.
+                        Point mid = (pt1 + pt2) / 2.0f;
+
+                        // Now project this point up into the upper slice.
+                        auto projMid = top->getNormal() - 
+                            glm::proj(mid, top->getNormal());
+
+                        // Now that we have the projected point, interpolate.
+                        auto val1 = mTree->eval(mid);
+                        auto val2 = mTree->eval(projMid);
+
+                        auto inflexionPt = glm::mix(mid, projMid,
+                            (mMagic - val1) / (val2 - val1));
+                        // Should we push the point into the surface?
+                        auto val = mTree->eval(inflexionPt);
+
+                        // With the approximation in hand, proceed to create a new
+                        // cross-section.
+                        auto min = mTree->getTreeBox().pMin;
+                        auto max = mTree->getTreeBox().pMax;
+                        switch (mAxis)
+                        {
+                        case SlicingAxes::XAxis:
+                            min.x = inflexionPt.x;
+                            max.x = inflexionPt.x;
+                            break;
+
+                        case SlicingAxes::YAxis:
+                            min.y = inflexionPt.y;
+                            max.y = inflexionPt.y;
+                            break;
+
+                        case SlicingAxes::ZAxis:
+                            min.z = inflexionPt.z;
+                            max.z = inflexionPt.z;
+                            break;
+                        }
+
+                        auto res = bottom->getResolutions();
+                        auto cs = std::make_unique<CrossSection>(mAxis, min, max,
+                            res.first, res.second, mMagic, mTree.get());
+                        cs->constructLattice();
+                        cs->constructContour();
+                        cs->resizeContours(maxContourSize);
+                        mCrossSections.insert(
+                            mCrossSections.begin() + branchCase.top,
+                            std::move(cs));
+                    }
+
+                }
+                else if (branchCase.type == BranchingManager::BranchType::Cap)
+                {
+                    // Handle caps here.
+                }
             }
 
             // Once we have all of the contour data, send it down to the manager
@@ -429,7 +436,7 @@ namespace athena
                 manager.insertContours(section->getContour());
             }
 
-            //mMesh = manager.connectContours();
+            mMesh = manager.connectContours();
 
             std::vector<std::vector<Voxel>> voxels;
             i = 0;
