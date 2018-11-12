@@ -233,16 +233,9 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                t.start();
                 section->constructLattice();
-                auto duration = t.elapsed();
-                mLog << "Generated lattice " << i << " in: " << duration
-                    << " seconds.\n";
                 ++i;
             }
-
-            auto time = global.elapsed();
-            mLog << "Total lattice generation time: " << time << " seconds\n";
 
             std::vector<std::vector<Voxel>> voxels;
             i = 0;
@@ -273,16 +266,9 @@ namespace athena
                 ATHENA_DEBUG_CONTOUR_RANGE(i, ATHENA_DEBUG_CONTOUR_START,
                     ATHENA_DEBUG_CONTOUR_END);
 #endif
-                t.start();
                  section->constructContour();
-                auto duration = t.elapsed();
-                mLog << "Generated contour " << i << " in: " << duration
-                    << " seconds.\n";
                 ++i;
             }
-
-            auto time = global.elapsed();
-            mLog << "Total contour generation time: " << time << " seconds\n";
 
             // Something here to create the contour thing.
             std::vector<std::vector<std::vector<FieldPoint>>> contours;
@@ -474,8 +460,6 @@ namespace athena
             Timer<float> global;
 
             global.start();
-            mLog << "Lattice generation.\n";
-            mLog << "#===========================#\n";
             // Generate lattices.
             {
                 Timer<float> step;
@@ -484,21 +468,12 @@ namespace athena
                 int i = 0;
                 for (auto& section : mCrossSections)
                 {
-                    part.start();
                     section->constructLattice();
-                    auto duration = part.elapsed();
-                    mLog << "Generated lattice " << i << " in: " << duration <<
-                        " seconds.\n";
                     ++i;
                 }
 
                 auto stepElapsed = step.elapsed();
-                mLog << "Total lattice generation time: " << stepElapsed 
-                    << " seconds.\n";
             }
-
-            mLog << "\nContour generation.\n";
-            mLog << "#===========================#\n";
 
             // Generate contours.
             {
@@ -508,23 +483,11 @@ namespace athena
                 int i = 0;
                 for (auto& section : mCrossSections)
                 {
-                    part.start();
                     section->constructContour();
-                    auto numContours = section->getContour().size();
-                    auto duration = part.elapsed();
-                    mLog << "Generated  " << numContours << " for cross-section " 
-                        << i << " in: " << duration <<
-                        " seconds.\n";
                     ++i;
                 }
-
-                auto stepElapsed = step.elapsed();
-                mLog << "Total contour generation time: " << stepElapsed 
-                    << " seconds.\n";
             }
 
-            mLog << "\nMesh generation.\n";
-            mLog << "#===========================#\n";
             {
                 Timer<float> step;
                 Timer<float> part;
@@ -541,14 +504,10 @@ namespace athena
                 }
 
                 int i = 0;
+                INFO_LOG_V("Maximal size: %d", size);
                 for (auto& section : mCrossSections)
                 {
-                    part.start();
                     section->resizeContours(size);
-                    
-                    auto elapsed = part.elapsed();
-                    mLog << "Resized cross-section " << i << " in " << elapsed <<
-                        " seconds.\n";
                     i++;
                 }
 
@@ -563,10 +522,10 @@ namespace athena
                 mMesh = manager.connectContours();
 
                 auto stepElapsed = step.elapsed();
-                mLog << "Mesh generated in " << stepElapsed << " seconds.\n";
             }
 
-            mLog << "\nSummary:\n";
+            mLog << "\nSummary: ";
+            mLog << mName + "\n";
             mLog << "#===========================#\n";
             mLog << "Total runtime: " << global.elapsed() << " seconds\n";
             mLog << "Total vertices generated: " << mMesh.vertices().size() << "\n";
