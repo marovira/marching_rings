@@ -27,12 +27,14 @@ namespace athena
         MAKE_SOID_FUNCTION(Cylinder);
         MAKE_SOID_FUNCTION(Cone);
         MAKE_SOID_FUNCTION(Torus);
+        MAKE_SOID_FUNCTION(Chain);
 
         MAKE_MC_FUNCTION(Sphere);
         MAKE_MC_FUNCTION(Peanut);
         MAKE_MC_FUNCTION(Cylinder);
         MAKE_MC_FUNCTION(Cone);
         MAKE_MC_FUNCTION(Torus);
+        MAKE_MC_FUNCTION(Chain);
     }
 }
 

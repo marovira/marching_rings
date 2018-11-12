@@ -10,7 +10,10 @@
 #include "athena/tree/BlobTree.hpp"
 #include "athena/polygonizer/Bsoid.hpp"
 
+#include <atlas/math/RandomGenerator.hpp>
+
 #include <tuple>
+#include <numeric>
 
 namespace athena
 {
@@ -35,8 +38,8 @@ namespace athena
         static const MCResolution midResolutionMC = { 32, 16, 16 };
         static const MCResolution highResolutionMC = { 64, 32, 32 };
 
-        constexpr Resolution currentResolution = midResolution;
-        static const MCResolution currentResolutionMC = midResolutionMC;
+        constexpr Resolution currentResolution = highResolution;
+        static const MCResolution currentResolutionMC = highResolutionMC;
 
         polygonizer::Bsoid makeSphere()
         {
@@ -90,7 +93,7 @@ namespace athena
             tree.insertFieldTree(blend);
 
             Bsoid soid(tree, "peanut");
-            soid.setSlicingAxis(SlicingAxes::YAxis);
+            soid.setSlicingAxis(SlicingAxes::XAxis);
             soid.setNumCrossSections(std::get<0>(currentResolution));
             soid.makeCrossSections(std::get<1>(currentResolution),
                 std::get<2>(currentResolution));
@@ -222,6 +225,81 @@ namespace athena
             tree.insertFieldTree(torus);
 
             MarchingCubes mc(tree, "torus");
+            mc.setResolution(currentResolutionMC.yxz());
+            return mc;
+        }
+
+        polygonizer::Bsoid makeChain()
+        {
+            using atlas::math::Point;
+            using fields::Sphere;
+            using operators::Blend;
+
+            static constexpr auto chainLength = 20;
+
+            std::vector<ImplicitFieldPtr> chain;
+            std::vector<std::vector<int>> nodes;
+
+            for (int i = 0; i < chainLength; ++i)
+            {
+                chain.emplace_back(std::make_shared<Sphere>(1.0f,
+                    Point(-10.0f + 2.0f * i, 0, 0)));
+                nodes.push_back({ -1 });
+            }
+
+            ImplicitOperatorPtr blend = std::make_shared<Blend>();
+            blend->insertFields(chain);
+
+            std::vector<int> roots(chainLength);
+            std::iota(roots.begin(), roots.end(), 0);
+            nodes.push_back(roots);
+            chain.push_back(blend);
+
+            BlobTree tree;
+            tree.insertFields(chain);
+            tree.insertNodeTree(nodes);
+            tree.insertFieldTree(blend);
+
+            Bsoid soid(tree, "chain");
+            soid.setSlicingAxis(SlicingAxes::XAxis);
+            soid.setNumCrossSections(std::get<0>(currentResolution));
+            soid.makeCrossSections(std::get<1>(currentResolution),
+                std::get<2>(currentResolution));
+            return soid;
+        }
+
+        polygonizer::MarchingCubes makeMCChain()
+        {
+            using atlas::math::Point;
+            using fields::Sphere;
+            using operators::Blend;
+
+            static constexpr auto chainLength = 20;
+
+            std::vector<ImplicitFieldPtr> chain;
+            std::vector<std::vector<int>> nodes;
+
+            for (int i = 0; i < chainLength; ++i)
+            {
+                chain.emplace_back(std::make_shared<Sphere>(1.0f,
+                    Point(-10.0f + 2.0f * i, 0, 0)));
+                nodes.push_back({ -1 });
+            }
+
+            ImplicitOperatorPtr blend = std::make_shared<Blend>();
+            blend->insertFields(chain);
+
+            std::vector<int> roots(chainLength);
+            std::iota(roots.begin(), roots.end(), 0);
+            nodes.push_back(roots);
+            chain.push_back(blend);
+
+            BlobTree tree;
+            tree.insertFields(chain);
+            tree.insertNodeTree(nodes);
+            tree.insertFieldTree(blend);
+
+            MarchingCubes mc(tree, "chain");
             mc.setResolution(currentResolutionMC.yxz());
             return mc;
         }
