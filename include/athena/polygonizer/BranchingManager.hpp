@@ -52,6 +52,7 @@ namespace athena
             void singleBranch(Slice const& top, Slice const& bottom);
             void manyToManyBranch(Slice const& top, Slice const& bottom);
             void multiBranch(Slice const& top, Slice const& bottom);
+            void capBranch(Slice const& top, Slice const& bottom);
 
             std::vector<Slice> mSlices;
             atlas::utils::Mesh mMesh;

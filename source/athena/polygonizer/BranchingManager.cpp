@@ -3,6 +3,8 @@
 #include <atlas/core/Assert.hpp>
 #include <atlas/core/Constants.hpp>
 
+#include <algorithm>
+
 namespace athena
 {
     namespace polygonizer
@@ -83,7 +85,7 @@ namespace athena
                 Slice bottom = mSlices[i + 1];
 
                 // Check if either of the slices is 0.
-                if (top.empty() || bottom.empty())
+                if (top.empty() && bottom.empty())
                 {
                     continue;
                 }
@@ -103,6 +105,14 @@ namespace athena
                 }
                 else
                 {
+                    if (top.empty())
+                    {
+                        capBranch(top, bottom);
+                    }
+                    else if (bottom.empty())
+                    {
+                        capBranch(bottom, top);
+                    }
                     //multiBranch(top, bottom);
                 }
             }
@@ -224,6 +234,71 @@ namespace athena
                     Slice s1{ contour };
                     Slice s2{ ring };
                     singleBranch(s1, s2);
+                }
+            }
+        }
+
+        void BranchingManager::capBranch(Slice const& top, Slice const& bottom)
+        {
+            // HACK: This DOES NOT solve the cap problem. It is just for
+            // presentation of the thesis ONLY. 
+            using atlas::math::Point;
+
+            if (bottom.size() == 1)
+            {
+                // Assume that we have a vertex cap.
+                auto ring = bottom[0];
+                Point centre;
+                for (auto idx : ring)
+                {
+                    centre += mMesh.vertices()[idx];
+                }
+
+                centre /= static_cast<float>(ring.size());
+
+                auto centreIdx = mMesh.vertices().size();
+                mMesh.vertices().push_back(centre);
+                mMesh.normals().push_back(centre);
+
+                for (std::size_t i = 0; i < ring.size(); ++i)
+                {
+                    mMesh.indices().push_back(ring[i]);
+                    mMesh.indices().push_back(ring[(i + 1) % ring.size()]);
+                    mMesh.indices().push_back(centreIdx);
+                }
+            }
+            else if (bottom.size() == 2)
+            {
+                auto topRing = bottom[0];
+                auto bottomRing = bottom[1];
+                auto size = topRing.size();
+
+                std::reverse(bottomRing.begin(), bottomRing.end());
+
+
+                auto seed = mMesh.vertices()[topRing[0]];
+                float distance = atlas::core::infinity();
+                std::size_t start = 0;
+                for (std::size_t i = 0; i < size; ++i)
+                {
+                    if (glm::distance(
+                        mMesh.vertices()[bottomRing[i]], seed) < distance)
+                    {
+                        distance = glm::distance(
+                            mMesh.vertices()[bottomRing[i]], seed);
+                        start = i;
+                    }
+                }
+
+                for (std::size_t i = 0; i < size; ++i)
+                {
+                    mMesh.indices().push_back(topRing[i]);
+                    mMesh.indices().push_back(bottomRing[(start + i) % size]);
+                    mMesh.indices().push_back(bottomRing[(start + i + 1) % size]);
+
+                    mMesh.indices().push_back(bottomRing[(start + i + 1) % size]);
+                    mMesh.indices().push_back(topRing[(i + 1) % size]);
+                    mMesh.indices().push_back(topRing[i]);
                 }
             }
         }
