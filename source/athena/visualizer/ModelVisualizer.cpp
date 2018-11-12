@@ -73,7 +73,10 @@ namespace athena
 
             // Now render the view.
             mViews[mCurrentView].renderGeometry();
-            mFieldViews[mCurrentView].renderGeometry();
+            if (!mFieldViews.empty())
+            {
+                mFieldViews[mCurrentView].renderGeometry();
+            }
 
             // Global HUD.
             ImGui::SetNextWindowSize(ImVec2(350, 140), ImGuiSetCond_FirstUseEver);
@@ -110,7 +113,10 @@ namespace athena
 
             // Render the GUI for the current view.
             mViews[mCurrentView].drawGui();
-            mFieldViews[mCurrentView].drawGui();
+            if (!mFieldViews.empty())
+            {
+                mFieldViews[mCurrentView].drawGui();
+            }
 
             ImGui::Render();
         }
@@ -138,16 +144,17 @@ namespace athena
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 mViews[mCurrentView].renderGeometry();
+                //mFieldViews[mCurrentView].renderGeometry();
             }
 
             int width = static_cast<int>(mWidth);
             int height = static_cast<int>(mHeight);
 
-            unsigned char* buffer = new unsigned char[width * height * 3];
-            glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer);
-            unsigned char* lastRow = buffer + (width * 3 * (height - 1));
-            if (!stbi_write_png(filename.c_str(), width, height, 3, lastRow,
-                -3 * width))
+            unsigned char* buffer = new unsigned char[width * height * 4];
+            glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+            unsigned char* lastRow = buffer + (width * 4 * (height - 1));
+            if (!stbi_write_png(filename.c_str(), width, height, 4, lastRow,
+                -4 * width))
             {
                 ERROR_LOG_V("Could not write image to %s", filename.c_str());
             }
